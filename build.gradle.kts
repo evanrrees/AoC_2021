@@ -3,7 +3,7 @@ plugins {
     java
 }
 
-group = "org.example"
+//group = "evanrr"
 version = "0.1"
 
 repositories {
