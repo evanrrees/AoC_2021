@@ -1,4 +1,4 @@
-//fun <T> File.useLines(block: (Sequence<String>) -> T) = this.bufferedReader().useLines(block)
+package aoc21
 
 fun Sequence<CharSequence>.mapSplit(
     vararg delimiters: String,

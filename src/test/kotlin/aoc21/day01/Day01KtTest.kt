@@ -1,4 +1,4 @@
-package day_one
+package aoc21.day01
 
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test

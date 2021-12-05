@@ -1,6 +1,6 @@
-package day_two
+package aoc21.day02
 
-import forEachSplit
+import aoc21.forEachSplit
 import java.io.File
 
 fun part1(input: File): Int {
