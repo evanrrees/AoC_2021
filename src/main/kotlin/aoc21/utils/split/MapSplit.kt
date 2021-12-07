@@ -1,12 +1,4 @@
-package aoc21.utils
-
-fun <R> CharSequence.mapSplit(
-    vararg delimiters: String,
-    ignoreCase: Boolean = false,
-    limit: Int = 0,
-    transform: (String) -> R
-) =
-    split(*delimiters, ignoreCase = ignoreCase, limit = limit).map(transform)
+package aoc21.utils.split
 
 fun Iterable<CharSequence>.mapSplit(
     vararg delimiters: String,
@@ -59,20 +51,3 @@ fun <R> Sequence<CharSequence>.mapSplit(
     mapSplit(*delimiters, ignoreCase = ignoreCase, limit = limit)
         .map(transform)
 
-fun Sequence<CharSequence>.forEachSplit(
-    vararg delimiters: String,
-    ignoreCase: Boolean = false,
-    limit: Int = 0,
-    action: (List<String>) -> Unit
-) =
-    mapSplit(*delimiters, ignoreCase = ignoreCase, limit = limit)
-        .forEach(action)
-
-fun Sequence<CharSequence>.onEachSplit(
-    vararg delimiters: String,
-    ignoreCase: Boolean = false,
-    limit: Int = 0,
-    action: (List<String>) -> Unit
-) =
-    mapSplit(*delimiters, ignoreCase = ignoreCase, limit = limit)
-        .onEach(action)

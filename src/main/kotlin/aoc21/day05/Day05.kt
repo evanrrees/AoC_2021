@@ -1,7 +1,7 @@
 package aoc21.day05
 
 import aoc21.utils.expand
-import aoc21.utils.progressionTo
+import aoc21.utils.ranges.progressionTo
 import aoc21.utils.toPair
 import java.io.File
 

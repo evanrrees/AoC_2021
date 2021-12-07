@@ -1,10 +1,10 @@
 package aoc21.day06
 
 import java.io.File
-import aoc21.utils.mapSplit
+import aoc21.utils.split.split
 import aoc21.utils.shiftRight
 
-fun parseInputFile(inputFile: File): List<Long> = inputFile.readLines().first().mapSplit(",") { it.toLong() }
+fun parseInputFile(inputFile: File): List<Long> = inputFile.readLines().first().split(",") { it.toLong() }
 
 fun part1(initialState: List<Long>, days: Int): Long {
     val fish = MutableList(9) { 0L }
