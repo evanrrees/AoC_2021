@@ -45,21 +45,16 @@ class ElementBuilder {
     }
 }
 
-fun String.format(block: ElementBuilder.() -> Unit): String {
-    return ElementBuilder().apply(block).build() + this
-//    val builder = ElementBuilder()
-//    builder.apply(block)
-//    return builder.build() + this
-}
+fun String.format(block: ElementBuilder.() -> Unit) = ElementBuilder().apply(block).build().plus(this)
 
 fun String.reset() = this + ElementBuilder().apply { color = Color.RESET }.build()
 
-fun reset(): String = ElementBuilder().apply { color = Color.RESET }.build()
+//fun reset(): String = ElementBuilder().apply { color = Color.RESET }.build()
 
-fun compose(block: ElementBuilder.() -> Unit): String {
-    val builder = ElementBuilder()
-    return builder.apply(block).build()
-}
+//fun compose(block: ElementBuilder.() -> Unit): String {
+//    val builder = ElementBuilder()
+//    return builder.apply(block).build()
+//}
 
 //fun foo() {
 //    val s = compose { bright; background; blue() }
