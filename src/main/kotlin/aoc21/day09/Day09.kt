@@ -7,6 +7,16 @@ typealias Heightmap = Array<Array<Int>>
 operator fun Heightmap.get(point: Point) = this[point.i][point.j]
 operator fun Heightmap.set(point: Point, value: Int) = this[point.i].set(point.j, value)
 
+fun printState(basinMap: Heightmap) {
+    val stamp = System.currentTimeMillis()
+    File("frames/heights_$stamp.csv").bufferedWriter().use { writer ->
+        basinMap.forEach {
+            writer.appendLine(it.joinToString(","))
+        }
+    }
+    Thread.sleep(1)
+}
+
 data class Point(val i: Int, val j: Int, val map: Heightmap) {
     val value get() = map[i][j]
 
@@ -15,6 +25,7 @@ data class Point(val i: Int, val j: Int, val map: Heightmap) {
     fun isLowpoint() = adjacent().all { it.value > value }
 
     fun expand(basinMap: Heightmap, basinID: Int) {
+        File("frames/path.txt").appendText("$i,$j\n")
         basinMap[this] = basinID
         adjacent()
             .filter { it.value > value }
@@ -111,6 +122,8 @@ fun part2(heightmap: Heightmap): Int {
                 .filter { it.value != 9 }
             if (adj.isNotEmpty() && adj.all { it.value >= p.value }) {
                 basins[p] = ++basinID
+//                printState(basins)
+                File("frames/path.txt").appendText("$i,$j\n")
                 adj.forEach { it.expand(basins, basinID) }
             }
         }
