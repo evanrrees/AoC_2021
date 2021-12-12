@@ -1,2 +1,4 @@
 /.gradle/
 /build/
+#/src/test/resources/day11/*
+/src/test/resources/day11/**
