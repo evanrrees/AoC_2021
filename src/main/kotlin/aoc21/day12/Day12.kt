@@ -1,48 +1,45 @@
 package aoc21.day12
 
-import aoc21.utils.split.forEachSplit
+import aoc21.utils.split.mapSplit
 import java.io.File
 
-
-fun findPaths(
-    caves: Map<String, List<String>>,
-    paths: MutableList<MutableList<String>>,
-    maxVisits: Int = 1,
-    cave: String = "start",
-    counts: MutableMap<String, Int> = mutableMapOf(),
-    path: MutableList<String> = mutableListOf()
-) {
-    if (cave == "end") paths.add((path + "end").toMutableList())
-    else if (
-        cave.first().isUpperCase() || cave !in path ||
-        counts.all { (k, v) -> k.first().isUpperCase() || v < maxVisits }
-    ) {
-        path.add(cave)
-        counts.compute(cave) { _, v -> v?.let { it + 1 } ?: 1 }
-        for (c in caves[cave]!!) if (c != "start") findPaths(caves, paths, maxVisits, c, counts, path)
-        path.removeLast()
-        counts.compute(cave) { _, v -> v?.let { it - 1 }?.takeIf { it > 0 } }
+class Day12(inputFile: File, private val maxVisits: Int = 1) {
+    private val caves = inputFile.useLines { lines ->
+        lines.mapSplit("-") { (a, b) -> listOf(a to b, b to a) }.flatten()
+            .groupBy({ it.first }, { it.second })
     }
-}
+    var counter = 0
+    private val path = mutableListOf<String>()
+    private val cts = Array(caves.size) { 0 }
+    private val canVisitTwice: Boolean get() = caves.keys.zip(cts) { k, v -> k.isBig() || v < maxVisits }.all()
 
-fun part1(caveSystem: Map<String, List<String>>) = mutableListOf<MutableList<String>>().also { findPaths(caveSystem, it) }.size
+    init {
+        findPaths()
+    }
 
-fun part2(caveSystem: Map<String, List<String>>) = mutableListOf<MutableList<String>>().also { findPaths(caveSystem, it, 2) }.size
+    private fun String.isBig() = first().isUpperCase()
 
-fun parseInput(inputFile: File): Map<String, List<String>> {
-    val caves = mutableMapOf<String, MutableList<String>>()
-    inputFile.useLines { lines ->
-        lines.forEachSplit("-") { (a, b) ->
-            caves[a]?.add(b) ?: caves.put(a, mutableListOf(b))
-            caves[b]?.add(a) ?: caves.put(b, mutableListOf(a))
+    private fun findPaths(cave: String = "start") {
+        if (cave == "end") counter++
+        else if (cave.isBig() || cave !in path || canVisitTwice) {
+            path.add(cave)
+            cts[caves.keys.indexOf(cave)]++
+            caves[cave]!!.filter { it != "start" }.forEach(::findPaths)
+            path.removeLast()
+            cts[caves.keys.indexOf(cave)]--
         }
     }
-    return caves
 }
+
+fun Iterable<Boolean>.all(): Boolean = all { it }
+fun Sequence<Boolean>.all(): Boolean = all { it }
+
+fun part1(inputFile: File) = Day12(inputFile).counter
+
+fun part2(inputFile: File) = Day12(inputFile, 2).counter
 
 fun main() {
     val inputFile = File("src/main/resources/Day12.txt")
-    val parsedInput = parseInput(inputFile)
-    part1(parsedInput).let(::println)
-    part2(parsedInput).let(::println)
+    part1(inputFile).let(::println)
+    part2(inputFile).let(::println)
 }
