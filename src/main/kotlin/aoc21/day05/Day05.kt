@@ -16,9 +16,9 @@ fun countIntersections(lines: List<Line>) =
 fun part1(positionList: List<Line>) = countIntersections(positionList.filter { !it.isDiagonal })
 fun part2(positionList: List<Line>) = countIntersections(positionList)
 
-typealias Point = Pair<Int, Int>
-val Point.x get() = first
-val Point.y get() = second
+private typealias Point = Pair<Int, Int>
+private val Point.x get() = first
+private val Point.y get() = second
 
 typealias Line = Pair<Point, Point>
 val Line.start          get() = first
