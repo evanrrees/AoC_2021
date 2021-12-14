@@ -75,7 +75,6 @@ fun parseInput(inputFile: File): ParsedInput {
             .partition { it.size == 1 }
     }
     val template = rawTemplate.single().single()
-
     val rules = rawRules.associate { (a, b) -> a to b }
     return ParsedInput(template, rules)
 }
