@@ -8,21 +8,7 @@ data class Instruction(val vertical: Boolean, val value: Int) {
     val horizontal get() = !vertical
     constructor(strings: List<String>): this(strings.first() == "x", strings.last().toInt())
     constructor(string: String): this(string.substringAfterLast(' ').split('='))
-    fun applyTo(paper: Paper): Paper {
-//        print(paper)
-        val result = if (vertical) foldVertical(paper, value) else foldHorizontal(paper, value)
-//        result.print()
-        return result
-    }
-    fun print(paper: Paper) {
-        println()
-        paper.forEachIndexed { i, booleans ->
-            if (horizontal && i == value) "–".repeat(booleans.size)
-            else {
-                booleans.mapIndexed { j, b -> if (vertical && j == value) "|" else if (b) "#" else "." }.joinToString("")
-            }.let(::println)
-        }
-    }
+    fun applyTo(paper: Paper) = if (vertical) foldVertical(paper, value) else foldHorizontal(paper, value)
 }
 
 data class Point(val x: Int, val y: Int) {
@@ -31,20 +17,14 @@ data class Point(val x: Int, val y: Int) {
 }
 
 typealias Paper = Array<Array<Boolean>>
-operator fun <T> Array<Array<T>>.get(i: Int, j: Int): T = this[i][j]
-operator fun <T> Array<Array<T>>.set(i: Int, j: Int, value: T) {
-    this[i][j] = value
-}
 
-fun Paper.print() {
-    println()
-    forEach { row ->  row.joinToString("") { if (it) "${(0x2588).toChar()}".format { bold; bright }.reset() else " " }.let(::println) }
+fun Paper.print() = forEach { row ->
+    row.joinToString("") { " ".format { background; if (it) { white } else { black } }.reset() }.let(::println)
 }
-
 
 fun fillPaper(points: List<Point>): Array<Array<Boolean>> {
     val paper = Array(points.maxOf { it.y } + 1) { Array(points.maxOf { it.x } + 1) { false } }
-    points.forEach { (j, i) -> paper[i, j] = true }
+    points.forEach { (j, i) -> paper[i][j] = true }
     return paper
 }
 
