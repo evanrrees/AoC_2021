@@ -38,3 +38,21 @@ fun <T> Array<Array<T>>.gridToString(
     ) { row ->
         row.run { joinToString(separator = delimiter, limit = colLimit, transform = transform) }
     }
+
+open class Point(val i: Int, val j: Int) {
+    open val adjacent: List<Point> get() = listOf(Point(i - 1, j), Point(i + 1, j), Point(i, j - 1), Point(i, j + 1))
+}
+
+typealias Grid<T> = Array<Array<T>>
+
+operator fun <T> Grid<T>.get(point: Point) = this[point.i][point.j]
+operator fun <T> Grid<T>.set(point: Point, value: T) {
+    this[point.i][point.j] = value
+}
+operator fun <T> Grid<T>.contains(point: Point) = point.i in indices && point.j in this[point.i].indices
+inline fun <reified T> createGrid(nrows: Int, ncols: Int, init: (Int, Int) -> T): Grid<T> =
+    Array(nrows) { i -> Array(ncols) { init(i, it) } }
+inline fun <reified T> createGrid(nrows: Int, ncols: Int, init: T): Grid<T> = Array(nrows) { Array(ncols) { init } }
+inline fun <reified T> createGrid(size: Int, init: (Int, Int) -> T): Grid<T> =
+    Array(size) { i -> Array(size) { j -> init(i, j) } }
+inline fun <reified T> createGrid(size: Int, init: T): Grid<T> = Array(size) { Array(size) { init } }
