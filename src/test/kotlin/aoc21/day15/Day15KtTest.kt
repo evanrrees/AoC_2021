@@ -17,22 +17,14 @@ internal class Day15KtTest {
         var actual = part1(parsedInput)
         assertEquals(expect, actual)
         expect = 315
-        actual = part1(expandGrid(parsedInput))
+        actual = part1(parsedInput.expand())
         assertEquals(expect, actual)
     }
 
     @Test
     fun expandGrid() {
         val expect = parseInput(File("src/test/resources/day15/expanded_grid.txt"))
-        val actual = expandGrid(parseInput(inputFile))
-        assertEquals(expect, actual)
-    }
-
-    @Test
-    fun part2v1() {
-        val expect = 40
-        val actual = part2(parsedInput)
-//        parsedInput.forEach { println(it.toList()) }
+        val actual = parseInput(inputFile).expand()
         assertEquals(expect, actual)
     }
 
@@ -42,29 +34,29 @@ internal class Day15KtTest {
         var actual = part2(parsedInput)
         assertEquals(expect, actual)
         expect = 315
-        actual = part2(expandGrid(parsedInput))
+        actual = part2(parsedInput.expand())
         assertEquals(expect, actual)
     }
 
-    @Test
-    fun foo() {
-        val start = Point(0, 0)
-        val end = Point(arr.lastIndex, arr.last().lastIndex)
-        val graph2 = RiskGraph2(arr)
-        val path2 = graph2.shortestPath(start, end)
-        println(path2)
-        println(path2.sumOf { arr[it] } - arr[start])
-    }
+//    @Test
+//    fun foo() {
+//        val start = Point(0, 0)
+//        val end = Point(arr.lastIndex, arr.last().lastIndex)
+//        val graph2 = RiskGraph2(arr)
+//        val path2 = graph2.shortestPath(start, end)
+//        println(path2)
+//        println(path2.sumOf { arr[it] } - arr[start])
+//    }
 
-    @Test
-    fun dpoint() {
-        val arr2 = expandGrid(arr)
-        val arr3 = expandGrid(parsedInput)
-        val graph = RiskGraph(arr3)
-        val expect = 315
-        val actual = graph.costOfShortestPath()
-        assertEquals(expect, actual)
-    }
+//    @Test
+//    fun dpoint() {
+//        val arr2 = expandGrid(arr)
+//        val arr3 = parsedInput.expand()
+//        val graph = RiskGraph(arr3)
+//        val expect = 315
+//        val actual = graph.costOfShortestPath()
+//        assertEquals(expect, actual)
+//    }
 
 }
 
