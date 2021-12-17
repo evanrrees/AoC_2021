@@ -32,6 +32,16 @@ internal class Day16KtTest {
     }
 
     @Test
+    fun versions2() {
+        val expectedVersions = listOf<Long>(6, 1, 7, 4, 3)
+        expectedVersions.zip(inputFiles) { expect, file ->
+            val parsedInput = parseInput(file)
+            val packet = Packet(parsedInput.iterator())
+            assertEquals(expect, packet.version)
+        }
+    }
+
+    @Test
     fun versions() {
         val expectedVersions = listOf<Long>(6, 1, 7, 4, 3)
         expectedVersions.zip(inputFiles) { expect, file ->
@@ -52,11 +62,31 @@ internal class Day16KtTest {
     }
 
     @Test
+    fun deepVersions2() {
+        val expectedDeepVersions = listOf<Long>(6, 9, 14, 16, 12, 23, 31)
+        expectedDeepVersions.zip(inputFiles) { expect, file ->
+            val parsedInput = parseInput(file)
+            val packet = Packet(parsedInput.iterator())
+            assertEquals(expect, packet.deepVersion)
+        }
+    }
+
+    @Test
     fun size() {
         val expectedSizes = listOf(1, 3, 4)
         expectedSizes.zip(inputFiles) { expect, file ->
             val parsedInput = parseInput(file)
             val packet = Decoder(parsedInput).decodePacket()
+            assertEquals(expect, packet.size)
+        }
+    }
+
+    @Test
+    fun size2() {
+        val expectedSizes = listOf(1, 3, 4)
+        expectedSizes.zip(inputFiles) { expect, file ->
+            val parsedInput = parseInput(file)
+            val packet = Packet(parsedInput.iterator())
             assertEquals(expect, packet.size)
         }
     }
@@ -89,7 +119,7 @@ internal class Day16KtTest {
             lines.mapSplit(",").associate { it.first().hexToBinary() to it.last().toLong() }
         }
         inputs.forEach { (input, expected) ->
-            val packet = Decoder(input).decodePacket()
+            val packet = Packet(input.iterator())
             assertEquals(expected, packet.value)
         }
     }

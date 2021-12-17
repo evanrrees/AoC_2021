@@ -7,89 +7,69 @@ import java.io.File
 enum class TypeID {
     Sum, Product, Min, Max, Literal, Greater, Less, Equal;
     companion object {
+        operator fun get(index: Int) = values()[index]
         operator fun get(index: Long) = values()[index.toInt()]
     }
 }
 
-class Decoder(input: String) {
+class Packet(val input: CharIterator) {
 
-    val input = input.iterator()
+    val subpackets      = mutableListOf<Packet>()
+    var bitLength       = 0
+        get() = field + subpackets.sumOf { it.bitLength }
+    val version         = nextInt(3).toLong()
+    val typeId          = TypeID[nextInt(3)]
+    val lengthTypeId    = if (typeId == TypeID.Literal) -1 else nextInt()
+    val subpacketLength = if (lengthTypeId == -1) -1 else if (lengthTypeId == 0) nextInt(15) else nextInt(11)
 
-    fun decodePacket(): Packet {
-        val p = Packet()
-        p.version = parseInt(p, 3)
-        p.typeId = TypeID[parseInt(p, 3)]
-        if (p.typeId == TypeID.Literal) {
+    val value: Long
+        get() = when (typeId) {
+            TypeID.Sum     -> subpackets.sumOf { it.value }
+            TypeID.Product -> subpackets.fold(1) { acc, p -> acc * p.value }
+            TypeID.Min     -> subpackets.minOf { it.value }
+            TypeID.Max     -> subpackets.maxOf { it.value }
+            TypeID.Literal -> field
+            TypeID.Greater -> if (subpackets.first().value > subpackets.last().value) 1 else 0
+            TypeID.Less    -> if (subpackets.first().value < subpackets.last().value) 1 else 0
+            TypeID.Equal   -> if (subpackets.first().value == subpackets.last().value) 1 else 0
+        }
+
+    init {
+        var buffer = 0L
+        if (typeId == TypeID.Literal) {
             var leading: Int
             do {
-                leading = parseInt(p, 1).toInt()
-                p.value = p.value shl 4 or parseInt(p, 4)
+                leading = nextInt()
+                buffer = (buffer shl 4) + nextInt(4)
             } while (leading != 0)
-        }
-        else {
-            p.lengthTypeId = parseInt(p, 1).toInt()
-            if (p.lengthTypeId == 0) {
-                var packetsLength = 0
-                val bitLength = parseInt(p, 15)
+        } else if (lengthTypeId == 0) {
+                var bitsRead = 0
                 do {
-                    val subpacket = decodePacket()
-                    packetsLength += subpacket.bitLength
-                    p.addSubpacket(subpacket)
-                } while (packetsLength < bitLength)
-            } else {
-                repeat(parseInt(p, 11).toInt()) { p.addSubpacket(decodePacket()) }
-            }
+                    subpackets += Packet(input)
+                    bitsRead += subpackets.last().bitLength
+                } while (bitsRead < subpacketLength)
+        } else {
+            repeat(subpacketLength) { subpackets += Packet(input) }
         }
-        return p
+        value = buffer
     }
 
-    fun parseInt(p: Packet, l: Int): Long {
-        var result = 0L
-        repeat(l) { result = (result shl 1) + input.next().digitToInt() }
-        p.bitLength += l
-        return result
-    }
+    val deepVersion: Long
+        get() = if (typeId == TypeID.Literal) version else version + subpackets.sumOf { it.deepVersion }
+    val size: Int
+        get() = if (typeId == TypeID.Literal) 1 else 1 + subpackets.size
 
-    inner class Packet(var version: Long = 0L, var typeId: TypeID = TypeID.Literal) {
-        var value: Long = 0L
-            get() = when (typeId) {
-                TypeID.Sum     -> subpackets.sumOf { it.value }
-                TypeID.Product -> subpackets.fold(1) { acc, p -> acc * p.value }
-                TypeID.Min     -> subpackets.minOf { it.value }
-                TypeID.Max     -> subpackets.maxOf { it.value }
-                TypeID.Literal -> field
-                TypeID.Greater -> if (subpackets.first().value > subpackets.last().value) 1 else 0
-                TypeID.Less    -> if (subpackets.first().value < subpackets.last().value) 1 else 0
-                TypeID.Equal   -> if (subpackets.first().value == subpackets.last().value) 1 else 0
-            }
-        var lengthTypeId: Int? = null
-        var bitLength: Int = 0
-        private val subpackets = mutableListOf<Packet>()
-        val deepVersion: Long
-            get() = if (typeId == TypeID.Literal) version else version + subpackets.sumOf { it.deepVersion }
-        val size: Int
-            get() = if (typeId == TypeID.Literal) 1 else 1 + subpackets.size
-        val deepSize: Int
-            get() = if (typeId == TypeID.Literal) 1 else 1 + subpackets.sumOf { it.deepSize }
+    fun nextInt(n: Int = 1) = (1..n).fold(0) { it, _ -> (it shl 1) + input.next().digitToInt() }.also { bitLength += n }
 
-        fun addSubpacket(sub: Packet) {
-            subpackets += sub
-            bitLength += sub.bitLength
-        }
-
-    }
 }
 
+
 fun part1(parsedInput: String): Long {
-    val decoder = Decoder(parsedInput)
-    val packet = decoder.decodePacket()
-    return packet.deepVersion
+    return Packet(parsedInput.iterator()).deepVersion
 }
 
 fun part2(parsedInput: String): Long {
-    val decoder = Decoder(parsedInput)
-    val packet = decoder.decodePacket()
-    return packet.value
+    return Packet(parsedInput.iterator()).value
 }
 
 fun String.hexToBinary() = map { it.digitToInt(16).toString(2).padStart(4, '0') }.joinToString("")
