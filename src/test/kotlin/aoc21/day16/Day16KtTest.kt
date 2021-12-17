@@ -11,7 +11,6 @@ internal class Day16KtTest {
     val inputDir = File("src/test/resources/day16")
     val inputFiles = inputDir.listFiles { _, name -> name.matches("hex_[0-9]+.txt".toRegex()) }!!
         .sorted()
-//    val parsedInput = parseInput(inputFile)
 
     init {
         assert(inputFiles.isNotEmpty())
@@ -42,26 +41,6 @@ internal class Day16KtTest {
     }
 
     @Test
-    fun versions() {
-        val expectedVersions = listOf<Long>(6, 1, 7, 4, 3)
-        expectedVersions.zip(inputFiles) { expect, file ->
-            val parsedInput = parseInput(file)
-            val packet = Decoder(parsedInput).decodePacket()
-            assertEquals(expect, packet.version)
-        }
-    }
-
-    @Test
-    fun deepVersions() {
-        val expectedDeepVersions = listOf<Long>(6, 9, 14, 16, 12, 23, 31)
-        expectedDeepVersions.zip(inputFiles) { expect, file ->
-            val parsedInput = parseInput(file)
-            val packet = Decoder(parsedInput).decodePacket()
-            assertEquals(expect, packet.deepVersion)
-        }
-    }
-
-    @Test
     fun deepVersions2() {
         val expectedDeepVersions = listOf<Long>(6, 9, 14, 16, 12, 23, 31)
         expectedDeepVersions.zip(inputFiles) { expect, file ->
@@ -72,34 +51,12 @@ internal class Day16KtTest {
     }
 
     @Test
-    fun size() {
-        val expectedSizes = listOf(1, 3, 4)
-        expectedSizes.zip(inputFiles) { expect, file ->
-            val parsedInput = parseInput(file)
-            val packet = Decoder(parsedInput).decodePacket()
-            assertEquals(expect, packet.size)
-        }
-    }
-
-    @Test
     fun size2() {
         val expectedSizes = listOf(1, 3, 4)
         expectedSizes.zip(inputFiles) { expect, file ->
             val parsedInput = parseInput(file)
             val packet = Packet(parsedInput.iterator())
             assertEquals(expect, packet.size)
-        }
-    }
-
-
-    @Test
-    fun debuggit() {
-        for (f in inputFiles) {
-            val parsedInput = parseInput(f)
-            val decoder = Decoder(parsedInput)
-            val decoded = decoder.decodePacket()
-            decoded.value
-            decoded.version
         }
     }
 
@@ -116,7 +73,7 @@ internal class Day16KtTest {
     fun part2() {
         val part2File = File("src/test/resources/day16/part2.txt")
         val inputs = part2File.useLines { lines ->
-            lines.mapSplit(",").associate { it.first().hexToBinary() to it.last().toLong() }
+            lines.mapSplit(",").associate { it.first().hexToBinaryDigits() to it.last().toLong() }
         }
         inputs.forEach { (input, expected) ->
             val packet = Packet(input.iterator())

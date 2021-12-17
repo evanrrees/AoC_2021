@@ -3,7 +3,6 @@ package aoc21.day16
 import aoc21.utils.timeit
 import java.io.File
 
-
 enum class TypeID {
     Sum, Product, Min, Max, Literal, Greater, Less, Equal;
     companion object {
@@ -12,7 +11,7 @@ enum class TypeID {
     }
 }
 
-class Packet(val input: CharIterator) {
+class Packet(val input: Iterator<Int>) {
 
     val subpackets      = mutableListOf<Packet>()
     var bitLength       = 0
@@ -36,54 +35,42 @@ class Packet(val input: CharIterator) {
 
     init {
         var buffer = 0L
-        if (typeId == TypeID.Literal) {
-            var leading: Int
+        if (typeId == TypeID.Literal)
             do {
-                leading = nextInt()
+                val leading = nextInt()
                 buffer = (buffer shl 4) + nextInt(4)
             } while (leading != 0)
-        } else if (lengthTypeId == 0) {
+        else if (lengthTypeId == 0) {
                 var bitsRead = 0
                 do {
                     subpackets += Packet(input)
                     bitsRead += subpackets.last().bitLength
                 } while (bitsRead < subpacketLength)
-        } else {
-            repeat(subpacketLength) { subpackets += Packet(input) }
         }
+        else
+            repeat(subpacketLength) { subpackets += Packet(input) }
         value = buffer
     }
 
-    val deepVersion: Long
-        get() = if (typeId == TypeID.Literal) version else version + subpackets.sumOf { it.deepVersion }
-    val size: Int
-        get() = if (typeId == TypeID.Literal) 1 else 1 + subpackets.size
+    val deepVersion: Long get() = version + if (typeId == TypeID.Literal) 0 else subpackets.sumOf { it.deepVersion }
+    val size: Int         get() = if (typeId == TypeID.Literal) 1 else 1 + subpackets.size
 
-    fun nextInt(n: Int = 1) = (1..n).fold(0) { it, _ -> (it shl 1) + input.next().digitToInt() }.also { bitLength += n }
+    fun nextInt(n: Int = 1) = (1..n).fold(0) { it, _ -> (it shl 1) + input.next() }.also { bitLength += n }
 
 }
 
 
-fun part1(parsedInput: String): Long {
-    return Packet(parsedInput.iterator()).deepVersion
-}
+fun part1(parsedInput: List<Int>) = Packet(parsedInput.iterator()).deepVersion
 
-fun part2(parsedInput: String): Long {
-    return Packet(parsedInput.iterator()).value
-}
+fun part2(parsedInput: List<Int>) = Packet(parsedInput.iterator()).value
 
-fun String.hexToBinary() = map { it.digitToInt(16).toString(2).padStart(4, '0') }.joinToString("")
+fun String.hexToBinaryDigits() = flatMap { it.digitToInt(16).toString(2).padStart(4, '0').map(Char::digitToInt) }
 
-fun parseInput(inputFile: File) =
-    inputFile.readLines().single().map { it.digitToInt(16).toString(2).padStart(4, '0') }.joinToString("")
+fun parseInput(inputFile: File) = inputFile.readLines().single().hexToBinaryDigits()
 
 fun main() {
     val inputFile = File("src/main/resources/Day16.txt")
     val parsedInput = parseInput(inputFile)
     timeit("Part 1:") { part1(parsedInput) }
     timeit("Part 2:") { part2(parsedInput) }
-//    val result1 = part1(parsedInput)
-//    println(result1)
-    // val result2 = part2(parsedInput)
-    // println(result2)
 }
