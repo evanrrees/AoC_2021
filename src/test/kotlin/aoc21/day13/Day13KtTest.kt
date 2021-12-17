@@ -29,11 +29,4 @@ internal class Day13KtTest {
         assertEquals(expect, actual)
     }
 
-    @Test
-    fun part2() {
-        val (paper, instructions) = parseInput(inputFile)
-        val expect = TODO()
-//        val actual = part2(parsedInput)
-//        assertEquals(expect, actual)
-    }
 }
