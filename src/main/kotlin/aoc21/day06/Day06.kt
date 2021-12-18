@@ -2,7 +2,7 @@ package aoc21.day06
 
 import java.io.File
 import aoc21.utils.split.split
-import aoc21.utils.shiftRight
+import aoc21.utils.cycleRight
 
 fun parseInputFile(inputFile: File): List<Long> = inputFile.readLines().first().split(",") { it.toLong() }
 
@@ -10,7 +10,7 @@ fun part1(initialState: List<Long>, days: Int): Long {
     val fish = MutableList(9) { 0L }
     initialState.groupingBy { it }.eachCount().forEach { (age, count) -> fish[(7 - age.toInt()) + 1] = count.toLong() }
     repeat(days) {
-        fish.shiftRight()
+        fish.cycleRight()
         fish[2] += fish.first()
     }
     return fish.sum()
