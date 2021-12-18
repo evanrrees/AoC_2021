@@ -27,7 +27,7 @@ class SnailfishNumber(string: CharIterator? = null) {
         get() = if (regular) value!! else 3 * left!!.magnitude + 2 * right!!.magnitude
 
     init {
-        if (string != null) {
+        if (string != null)
             while (string.hasNext()) {
                 val c = string.next()
                 when {
@@ -36,7 +36,6 @@ class SnailfishNumber(string: CharIterator? = null) {
                     c == ']'    -> break
                 }
             }
-        }
     }
 
     private fun addChild(child: SnailfishNumber) = apply { children += child.also { it.parent = this } }
@@ -51,24 +50,24 @@ class SnailfishNumber(string: CharIterator? = null) {
 
     fun reduce(): SnailfishNumber = apply {
         val numbers = traverse.withIndex()
-        val exploded = numbers.firstOrNull { (_, sn) -> sn.explodable }
-            ?.let { (i, sn) ->
-                numbers.lastOrNull { it.index < i && it.value.regular }
+        numbers.firstOrNull { (_, sn) -> sn.explodable }
+            ?.let { (index, sn) ->
+                numbers.lastOrNull { it.index < index && it.value.regular }
                     ?.let { (_, regLeft) -> regLeft.value = regLeft.value!! + sn.left!!.value!! }
-                numbers.firstOrNull { it.index > i + 2 && it.value.regular }
+                numbers.firstOrNull { it.index > index + 2 && it.value.regular }
                     ?.let { (_, regRight) -> regRight.value = regRight.value!! + sn.right!!.value!! }
                 sn.children.clear()
                 sn.value = 0
+                reduce()
             }
-        if (exploded != null) reduce()
-        val split = numbers.firstOrNull { (_, sn) -> sn.splittable }
+        numbers.firstOrNull { (_, sn) -> sn.splittable }
             ?.let { (_, sn) ->
                 val (left, right) = sn.value!!.let { it / 2 to it / 2 + it % 2 }
-                sn.value = null
                 sn.addChild(SnailfishNumber().apply { value = left })
-                sn.addChild(SnailfishNumber().apply { value = right })
+                    .addChild(SnailfishNumber().apply { value = right })
+                sn.value = null
+                reduce()
             }
-        if (split != null) reduce()
     }
 }
 
