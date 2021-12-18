@@ -13,18 +13,19 @@ class SnailfishNumber(string: CharIterator? = null) {
 
     constructor(string: String): this(string.drop(1).iterator())
 
-    var value: Int?                            = null
-    var parent:    SnailfishNumber?            = null
-    val children                               = mutableListOf<SnailfishNumber>()
-    val left                             get() = children.firstOrNull()
-    val right                            get() = children.elementAtOrNull(1)
-    val depth:     Int                   get() = if (parent == null) 0 else 1 + parent!!.depth
-    val traverse:  List<SnailfishNumber> get() = listOf(this) + children.flatMap { it.traverse }
-    val regular                          get() = value != null
-    val subregular                       get() = !regular && left?.regular ?: false && right?.regular ?: false
-    val explodable                       get() = subregular && depth >= 4
-    val splittable                       get() = regular && value!! > 9
-    val magnitude: Int                   get() = if (regular) value!! else 3 * left!!.magnitude + 2 * right!!.magnitude
+    var value:             Int?                        = null
+    private var parent:    SnailfishNumber?            = null
+    private val children                               = mutableListOf<SnailfishNumber>()
+    private val left                             get() = children.firstOrNull()
+    private val right                            get() = children.elementAtOrNull(1)
+    private val depth:     Int                   get() = if (parent == null) 0 else 1 + parent!!.depth
+    private val traverse:  List<SnailfishNumber> get() = listOf(this) + children.flatMap { it.traverse }
+    private val regular                          get() = value != null
+    private val subregular                       get() = !regular && left?.regular ?: false && right?.regular ?: false
+    private val explodable                       get() = subregular && depth >= 4
+    private val splittable                       get() = regular && value!! > 9
+    val magnitude:         Int
+        get() = if (regular) value!! else 3 * left!!.magnitude + 2 * right!!.magnitude
 
     init {
         if (string != null) {
@@ -39,7 +40,7 @@ class SnailfishNumber(string: CharIterator? = null) {
         }
     }
 
-    fun addChild(child: SnailfishNumber): SnailfishNumber = apply { children += child.also { it.parent = this } }
+    private fun addChild(child: SnailfishNumber) = apply { children += child.also { it.parent = this } }
 
     override fun equals(other: Any?) = this === other || (javaClass == other?.javaClass && "$this" == "$other")
 
