@@ -31,10 +31,11 @@ mkdir -p "${PACKAGES[@]}"
 touch "${INPUTS[@]}"
 
 # create main template
-cat > "$MAIN" <<EOF
+cat >"$MAIN" <<EOF
 package aoc21.day$DAY
 
 import java.io.File
+import aoc21.utils.timeit
 
 fun part1(parsedInput: List<Int>): Int {
     TODO()
@@ -45,16 +46,14 @@ fun part2(parsedInput: List<Int>): Int {
 }
 
 fun parseInput(inputFile: File): List<Int> {
-  TODO()
+    TODO()
 }
 
 fun main() {
     val inputFile = File("src/main/resources/Day$DAY.txt")
     val parsedInput = parseInput(inputFile)
-    val result1 = part1(parsedInput)
-    println(result1)
-    // val result2 = part2(parsedInput)
-    // println(result2)
+    timeit("Part 1:") { part1(parsedInput) }
+    //timeit("Part 2:") { part2(parsedInput) }
 }
 EOF
 
@@ -74,14 +73,14 @@ internal class Day${DAY}KtTest {
 
     @Test
     fun part1() {
-        val expect: Int = TODO()
+        val expect = TODO()
         val actual = part1(parsedInput)
         assertEquals(expect, actual)
     }
 
     @Test
     fun part2() {
-        val expect: Int = TODO()
+        val expect = TODO()
         val actual = part2(parsedInput)
         assertEquals(expect, actual)
     }
