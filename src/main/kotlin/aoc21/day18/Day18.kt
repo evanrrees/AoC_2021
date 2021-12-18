@@ -1,8 +1,8 @@
 package aoc21.day18
 
 import aoc21.utils.ranges.expand
-import java.io.File
 import aoc21.utils.timeit
+import java.io.File
 
 fun part1(parsedInput: List<SnailfishNumber>) = parsedInput.reduce { a, b -> a + b }.magnitude
 
