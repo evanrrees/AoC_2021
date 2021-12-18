@@ -1,19 +1,13 @@
 package aoc21.utils.geom
 
+import aoc21.utils.grids.Grid
 import aoc21.utils.grids.Point
 import aoc21.utils.ranges.expand
-import aoc21.utils.ranges.progressionTo
 
-data class Line(val start: Point, val end: Point) {
-
-    val isStraight = (start.y == end.y) xor (start.x == end.x)
-    val xRange     = start.x progressionTo end.x
-    val yRange     = start.y progressionTo end.y
-    val xMax       = maxOf(start.x, end.x)
-    val yMax       = maxOf(start.y, end.y)
-
-    constructor(Points: List<Point>): this(Points[0], Points[1])
-
+class Line(x0: Int, x1: Int, y0: Int, y1: Int): Rectangle(x0, x1, y0, y1) {
+    constructor(start: Point, end: Point): this(start.x, end.x, start.y, end.y)
+    constructor(Points: List<Point>):      this(Points[0], Points[1])
+    val isStraight = (y0 == y1) xor (x0 == x1)
     fun points() = if (isStraight) yRange.zip(xRange, ::Point) else yRange.expand(xRange, ::Point)
-    fun drawTo(array: Array<Array<Int>>) = points().forEach { array[it.y][it.x]++ }
+    fun drawTo(grid: Grid<Int>) = points().forEach { grid[it.y, it.x]++ }
 }
