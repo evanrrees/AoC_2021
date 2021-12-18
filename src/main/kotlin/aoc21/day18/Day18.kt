@@ -21,8 +21,7 @@ class SnailfishNumber(string: CharIterator? = null) {
     private val depth:     Int                   get() = if (parent == null) 0 else 1 + parent!!.depth
     private val traverse:  List<SnailfishNumber> get() = listOf(this) + children.flatMap { it.traverse }
     private val regular                          get() = value != null
-    private val subregular                       get() = !regular && left?.regular ?: false && right?.regular ?: false
-    private val explodable                       get() = subregular && depth >= 4
+    private val explodable                       get() = left?.regular ?: false && right?.regular ?: false && depth >= 4
     private val splittable                       get() = regular && value!! > 9
     val magnitude:         Int
         get() = if (regular) value!! else 3 * left!!.magnitude + 2 * right!!.magnitude
