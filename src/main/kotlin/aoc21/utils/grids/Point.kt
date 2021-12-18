@@ -3,6 +3,9 @@ package aoc21.utils.grids
 
 open class Point(val i: Int, val j: Int) {
 
+    val x get() = j
+    val y get() = i
+
     constructor(pair: Pair<Int, Int>): this(pair.first, pair.second)
 
     fun adjacent() = listOf(
@@ -54,10 +57,14 @@ open class Point(val i: Int, val j: Int) {
         if (j < grid.lastColIndex)  action(grid[i, j + 1])
     }
 
-    operator fun plus(other: Point)  = Point(i + other.i, j + other.j)
-    operator fun minus(other: Point) = Point(i - other.i, j - other.j)
-    operator fun times(other: Point) = Point(i * other.i, j * other.j)
-    operator fun div(other: Point)   = Point(i / other.i, j / other.j)
+    operator fun plus(other: Point)             = Point(i + other.i, j + other.j)
+    operator fun minus(other: Point)            = Point(i - other.i, j - other.j)
+    operator fun times(other: Point)            = Point(i * other.i, j * other.j)
+    operator fun div(other: Point)              = Point(i / other.i, j / other.j)
+    operator fun plus(other: Pair<Int, Int>)    = Point(i + other.first, j + other.second)
+    operator fun minus(other: Pair<Int, Int>)   = Point(i - other.first, j - other.second)
+    operator fun times(other: Pair<Int, Int>)   = Point(i * other.first, j * other.second)
+    operator fun div(other: Pair<Int, Int>)     = Point(i / other.first, j / other.second)
 
     fun pointAbove() = Point(i - 1, j)
     fun pointBelow() = Point(i + 1, j)
