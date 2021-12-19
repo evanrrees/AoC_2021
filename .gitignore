@@ -3,3 +3,4 @@
 /days/build/
 /utils/build/
 /days/src/test/resources/day11/frames/**
+.idea/csv-plugin.xml
