@@ -1,9 +1,8 @@
 plugins {
-    kotlin("jvm") version "1.6.0"
+    kotlin("jvm")
     java
 }
 
-//group = "evanrr"
 version = "2021.08"
 
 repositories {
@@ -11,7 +10,6 @@ repositories {
 }
 
 dependencies {
-    implementation(project(":utils"))
     implementation("org.tinylog:tinylog-api-kotlin:2.4.1")
     implementation("org.tinylog:tinylog-impl:2.4.1")
     implementation("org.jetbrains.kotlin:kotlin-script-runtime:1.6.0")

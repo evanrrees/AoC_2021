@@ -1,9 +1,8 @@
 plugins {
-    kotlin("jvm") version "1.6.0"
+    kotlin("jvm")
     java
 }
 
-//group = "evanrr"
 version = "2021.08"
 
 repositories {
