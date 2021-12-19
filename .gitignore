@@ -1,4 +1,4 @@
 /.gradle/
 /build/
 #/src/test/resources/day11/*
-/days/src/test/resources/day11/**
+/days/src/test/resources/day11/frames/**
