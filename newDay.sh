@@ -19,10 +19,10 @@ fi
 declare DAY
 printf -v DAY "%02s" "$1"
 
-declare -a PACKAGES=( "$WORKDIR/src/"{main,test}"/kotlin/aoc21/day$DAY" )
-declare -a INPUTS=( "$WORKDIR/src/"{main,test}"/resources/Day$DAY.txt" )
-declare MAIN="$WORKDIR/src/main/kotlin/aoc21/day$DAY/Day$DAY.kt"
-declare TEST="$WORKDIR/src/test/kotlin/aoc21/day$DAY/Day${DAY}KtTest.kt"
+declare -a PACKAGES=( "$WORKDIR/days/src/"{main,test}"/kotlin/aoc21/day$DAY" )
+declare -a INPUTS=( "$WORKDIR/days/src/"{main,test}"/resources/Day$DAY.txt" )
+declare MAIN="$WORKDIR/days/src/main/kotlin/aoc21/day$DAY/Day$DAY.kt"
+declare TEST="$WORKDIR/days/src/test/kotlin/aoc21/day$DAY/Day${DAY}KtTest.kt"
 
 # make package directories
 mkdir -p "${PACKAGES[@]}"
