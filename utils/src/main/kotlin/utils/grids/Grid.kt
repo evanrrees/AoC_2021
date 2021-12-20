@@ -8,6 +8,10 @@ open class Grid<T>(val arr: Array<Array<T>>, val rows: Int = arr.size, val cols:
     val lastColIndex get() = cols - 1
     fun first() = this[0, 0]
     fun last() = this[rows - 1, cols - 1]
+    val rowIndices = 0..lastRowIndex
+    val colIndices = 0..lastColIndex
+
+    fun row(index: Int) = arr[index]
 
     companion object {
         inline operator fun <reified T> invoke() = Grid(Array(0) { emptyArray<T>() })
@@ -30,7 +34,7 @@ open class Grid<T>(val arr: Array<Array<T>>, val rows: Int = arr.size, val cols:
             }
             return Grid(Array(rows) { Array(cols) { def as T } }, rows, cols)
         }
-        inline operator fun <reified T> invoke(rows: Int, cols: Int, init: (Int, Int) -> T) =
+        inline operator fun <reified T> invoke(rows: Int, cols: Int, init: (i: Int, j: Int) -> T) =
             Grid(Array(rows) { i -> Array(cols) { j -> init(i, j) } }, rows, cols)
         inline operator fun <reified T> invoke(rows: Int, cols: Int, default: T) = Grid(rows, cols) { _, _ -> default }
         inline operator fun <reified T> invoke(source: Collection<Collection<T>>) =
@@ -60,15 +64,15 @@ open class Grid<T>(val arr: Array<Array<T>>, val rows: Int = arr.size, val cols:
 
     override fun hashCode() = arr.contentDeepHashCode()
 
-    fun forEach(action: (T) -> Unit) = arr.forEach { it.forEach(action) }
+    fun forEach(action: (it: T) -> Unit) = arr.forEach { it.forEach(action) }
     fun forEachIndexed(action: (i: Int, j: Int, it: T) -> Unit) =
         arr.forEachIndexed { i, p -> p.forEachIndexed { j, t -> action(i, j, t) } }
 
     fun points() = arr.indices.flatMap { i -> arr[i].indices.map { j -> Point(i, j) } }
     fun pointSequence() = sequence { arr.indices.forEach { i -> arr[i].indices.forEach { j -> yield(Point(i, j)) } } }
 
-    inline fun <reified R> map(transform: (T) -> R) = Grid(rows, cols) { i, j -> transform(arr[i][j]) }
-    fun all(predicate: (T) -> Boolean): Boolean {
+    inline fun <reified R> map(transform: (it: T) -> R) = Grid(rows, cols) { i, j -> transform(arr[i][j]) }
+    fun all(predicate: (it: T) -> Boolean): Boolean {
         for (a in arr) for (it in a) if (!predicate(it)) return false
         return true
     }
@@ -93,7 +97,8 @@ inline fun <reified T> Collection<Collection<T>>.asGrid(): Grid<T> {
     return Grid(rows, cols) { i, j -> this.elementAt(i).elementAt(j) }
 }
 
-//class Grid3<T>(rows: Int, cols: Int, init: (Int, Int) -> T): Grid2<T>(rows, cols, init) {
-////    val arr1 = Array(cols) { init(0, it) }
-////    override val arr: Array<Array<T>> = Array<Array<T>>(rows) { i -> Array<T>(cols) { j -> init(i, j)} }
-//}
+inline fun <reified T, R, reified V> Collection<T>.expandToGrid(other: Collection<R>, transform: (a: T, b: R) -> V) =
+    Grid(size, other.size) { i, j -> transform(this.elementAt(i), other.elementAt(j)) }
+
+inline fun <reified T, R, reified V> Array<T>.expandToGrid(other: Array<R>, transform: (a: T, b: R) -> V) =
+    Grid(size, other.size) { i, j -> transform(this.elementAt(i), other.elementAt(j)) }

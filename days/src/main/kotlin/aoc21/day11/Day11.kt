@@ -1,7 +1,7 @@
 package aoc21.day11
 
 //import utils.utils.grids.forEachElementIndexed
-import utils.grids.deepCopyOf
+import utils.arrays.deepCopyOf
 import utils.io.readLongGrid
 import utils.konsole.format
 //import utils.utils.print.gridToString
