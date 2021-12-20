@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test
 
 import org.junit.jupiter.api.Assertions.*
 import utils.accessors.second
+import utils.grids.Grid
 import java.io.File
 
 internal class Day19KtTest {
@@ -69,7 +70,8 @@ internal class Day19KtTest {
 
     @Test
     fun compareScanners() {
-        val result = compareScanners(scanners.first(), scanners.second())
+        val o = Grid(scanners.size, scanners.size) { i, j -> if (i == j) Orientation(arrayOf(0, 0, 0)) else null}
+        val result = compareScanners(scanners.first(), scanners.second(), o)
     }
 
     @Test
@@ -102,7 +104,7 @@ internal class Day19KtTest {
 
     @Test
     fun part2() {
-        val expect = 3621
+        val expect = 3621L
         val actual = part2(scanners)
         assertEquals(expect, actual)
     }

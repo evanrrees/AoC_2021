@@ -2,6 +2,7 @@ package aoc21.day19
 
 import utils.accessors.*
 import org.tinylog.kotlin.Logger
+import utils.grids.Grid
 import java.io.File
 import utils.timeit
 import kotlin.math.abs
@@ -117,26 +118,7 @@ class Scanner(val id: Int) {
     }
 }
 
-fun overlapScanners(scanner1: Scanner, scanner2: Scanner): Map<Beacon, Beacon> {
-    for (beacon1a in scanner1.beacons) {
-        for (beacon2a in scanner2.beacons) {
-            val shared = mutableMapOf<Beacon, Beacon>()
-            for (beacon1b in scanner1.beacons) {
-                val d1 = beacon1a.distanceTo(beacon1b)
-                for (beacon2b in scanner2.beacons) {
-                    val d2 = beacon2a.distanceTo(beacon2b)
-                    if (d1 == d2) {
-                        shared[beacon1b] = beacon2b
-                    }
-                }
-            }
-            if (shared.size >= 11) return shared
-        }
-    }
-    return emptyMap<Beacon, Beacon>()
-}
-
-fun compareScanners(scanner1: Scanner, scanner2: Scanner): Boolean {
+fun compareScanners(scanner1: Scanner, scanner2: Scanner, orientations: Grid<Orientation?>): Boolean {
     for (beacon1a in scanner1.beacons) {
         val d1 = scanner1.distances.filterKeys { it.first == beacon1a }
         for (beacon2a in scanner2.beacons) {
@@ -146,6 +128,7 @@ fun compareScanners(scanner1: Scanner, scanner2: Scanner): Boolean {
             }
             if (overlap.size >= 11) {
                 val o = Orientation.find(overlap.first().first, overlap.first().second)!!
+                orientations[scanner1.id, scanner2.id] = o.copyOf()
                 val shared = overlap.flatMap { it.second.toList() }.toSet()
                 (scanner2.beacons - shared).forEach {
                     val newBeacon = it.reorient(o) + o
@@ -158,58 +141,43 @@ fun compareScanners(scanner1: Scanner, scanner2: Scanner): Boolean {
     return false
 }
 
-fun combineScanners(scanner: Scanner, others: MutableList<Scanner>): Scanner {
+fun combineScanners(scanner: Scanner, others: MutableList<Scanner>, orientations: Grid<Orientation?>): Scanner {
     return if (others.isEmpty()) scanner
     else {
         for (i in others.indices) {
-            val shared = compareScanners(scanner, others[i])
+            val shared = compareScanners(scanner, others[i], orientations)
             if (shared) {
-                Logger.debug("Combined scanners ${scanner.id} and ${others[i].id}")
+                Logger.debug("Combined scanners ${scanner.id} and ${others[i].id}. ${others.size - 1} remaining")
                 others.removeAt(i)
-                others += scanner
-                return combineScanners(others.removeFirst(), others)
+                return combineScanners(scanner, others, orientations)
             }
         }
         others += scanner
-        combineScanners(others.removeFirst(), others)
+        combineScanners(others.removeFirst(), others, orientations)
     }
 }
 
-//fun resolveMap(scanners: List<Scanner>) {
-//    val beacons = scanners.flatMap { it.beacons }
-//    beacons.forEachIndexed { index, beacon -> beacon.globalIndex = index }
-//    val distances = Grid(beacons.size, beacons.size, -1.0)
-//    for (scanner in scanners) for (b1 in scanner.beacons) for (b2 in scanner.beacons)
-//        distances[b1.globalIndex, b2.globalIndex] = b1.distanceTo(b2)
-//    val scannerGrid = Grid(scanners.size, scanners.size) { i, j -> if (i == j) Orientation(arrayOf(0, 0, 0)) else null }
-//    fun combine(scanners: List<Scanner>): List<Scanner> {
-//        return if (scanners.size == 1) scanners
-//        else {
-//            if (compareScanners(scanners.first(), scanners.second())) {
-//            }
-//            scanners.windowed(2, 2) { combine(it) }.flatten()
-//        }
-//    }
-//}
-
 fun part1(scanners: List<Scanner>): Int {
-    val map = combineScanners(scanners.first(), scanners.drop(1).toMutableList())
+    val o = Grid(scanners.size, scanners.size) { i, j ->
+        if (i == j) Orientation(arrayOf(0, 0, 0)) else null
+    }
+    val map = combineScanners(scanners.first(), scanners.drop(1).toMutableList(), o)
     return map.beacons.size
 }
 
 fun part2(scanners: List<Scanner>): Long {
-    val map = combineScanners(scanners.first(), scanners.drop(1).toMutableList())
+    val o = Grid(scanners.size, scanners.size) { i, j ->
+        if (i == j) Orientation(arrayOf(0, 0, 0)) else null
+    }
+    combineScanners(scanners.first(), scanners.drop(1).toMutableList(), o)
+    val ref = o.arr.first { row -> row.none { it == null } }
     var max = 0L
-    map.beacons.forEachIndexed { index, beacon1 ->
-        map.beacons.drop(index + 1).forEach { beacon2 ->
-            max = maxOf(max, beacon1.manhattanTo(beacon2))
+    for ((i, s1) in ref.withIndex()) {
+        for (s2 in ref.drop(i + 1)) {
+            max = maxOf(max, s1!!.manhattanTo(s2!!))
         }
     }
     return max
-//    return map.distances.maxOf { (k, _) ->
-//        val (b1, b2) = k
-//        b1.manhattanTo(b2)
-//    }
 }
 
 fun parseInput(inputFile: File): List<Scanner> {
@@ -221,31 +189,9 @@ fun parseInput(inputFile: File): List<Scanner> {
     return scanners
 }
 
-//fun parseInput(inputFile: File): List<Scanner> {
-//    val scanners = mutableListOf<Scanner>()
-//    var scannerId = 0
-//    val beacons = mutableListOf<Beacon>()
-//    var beaconIndex = 0
-//    inputFile.readLines().forEach { line ->
-//        if (line.matches("--- scanner [0-9]+ ---".toRegex())) {
-//            scannerId = line.split(' ').third().toInt()
-//            beaconIndex = 0
-//            beacons.clear()
-//        } else if (line.isNotBlank()) {
-//            beacons += line.split(',').map(String::toInt).let { Beacon(scannerId, beaconIndex, it.toMutableList()) }
-//            beaconIndex++
-//        }
-//        else {
-//            scanners += Scanner(scannerId, beacons.toList())
-//        }
-//    }
-//    scanners += Scanner(scannerId, beacons)
-//    return scanners.sortedBy { it.id }
-//}
-
 fun main() {
     val inputFile = File("days/src/main/resources/Day19.txt")
     val scanners = parseInput(inputFile)
-    timeit("Part 1:") { part1(scanners) }
-    //timeit("Part 2:") { part2(parsedInput) }
+//    timeit("Part 1:") { part1(scanners) }
+    timeit("Part 2:") { part2(scanners) }
 }
