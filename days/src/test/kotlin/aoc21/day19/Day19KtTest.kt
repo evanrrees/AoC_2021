@@ -44,13 +44,13 @@ internal class Day19KtTest {
         assertEquals(d0, d1)
     }
 
-    @Test
-    fun findOrientation() {
-        val p1 = Beacon(-618,-824,-621) to Beacon(-537,-823,-458)
-        val p2 = Beacon(686,422,578) to Beacon(605,423,415)
-        val o = Orientation.find(p1, p2)!!
-        o
-    }
+//    @Test
+//    fun findOrientation() {
+//        val p1 = Beacon(-618,-824,-621) to Beacon(-537,-823,-458)
+//        val p2 = Beacon(686,422,578) to Beacon(605,423,415)
+//        val o = Orientation.find(p1, p2)!!
+//        assert(true)
+//    }
 
     @Test
     fun delta() {
@@ -68,24 +68,24 @@ internal class Day19KtTest {
 
     }
 
-    @Test
-    fun compareScanners() {
-        val o = Grid(scanners.size, scanners.size) { i, j -> if (i == j) Orientation(arrayOf(0, 0, 0)) else null}
-        val result = compareScanners(scanners.first(), scanners.second(), o)
-    }
+//    @Test
+//    fun compareScanners() {
+//        val o = Grid(scanners.size, scanners.size) { i, j -> if (i == j) Orientation(arrayOf(0, 0, 0)) else null}
+//        val result = compareScanners(scanners.first(), scanners.second(), o)
+//    }
 
-    @Test
-    fun reorient() {
-        val s1 = Scanner(0).apply {
-            addBeacon(listOf(-618,-824,-621))
-            addBeacon(listOf(-537,-823,-458))
-        }
-        val s2 = Scanner(0).apply {
-            addBeacon(listOf(686,422,578))
-            addBeacon(listOf(605,423,415))
-        }
-
-    }
+//    @Test
+//    fun reorient() {
+//        val s1 = Scanner(0).apply {
+//            addBeacon(listOf(-618,-824,-621))
+//            addBeacon(listOf(-537,-823,-458))
+//        }
+//        val s2 = Scanner(0).apply {
+//            addBeacon(listOf(686,422,578))
+//            addBeacon(listOf(605,423,415))
+//        }
+//
+//    }
 
     @Test
     fun parseInput() {
