@@ -35,7 +35,7 @@ cat >"$MAIN" <<EOF
 package aoc21.day$DAY
 
 import java.io.File
-import aoc21.utils.timeit
+import utils.timeit
 
 fun part1(parsedInput: List<Int>): Int {
     TODO()
