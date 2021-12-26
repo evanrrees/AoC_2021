@@ -37,15 +37,17 @@ package aoc21.day$DAY
 import java.io.File
 import utils.timeit
 
-fun part1(parsedInput: List<Int>): Int {
+internal data class ParsedInput(val todo: Any?)
+
+internal fun part1(parsedInput: ParsedInput): Int {
     TODO()
 }
 
-fun part2(parsedInput: List<Int>): Int {
+internal fun part2(parsedInput: ParsedInput): Int {
     TODO()
 }
 
-fun parseInput(inputFile: File): List<Int> {
+internal fun parseInput(inputFile: File): ParsedInput {
     TODO()
 }
 
