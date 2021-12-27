@@ -9,6 +9,6 @@ infix fun LongRange.overlaps(other: LongRange) =
 infix fun CharRange.overlaps(other: CharRange) =
     first in other || last in other || other.first in this || other.last in this
 
-fun CharRange.contains(other: CharRange) = other.first in this && other.last in this
-fun IntRange .contains(other: IntRange)  = other.first in this && other.last in this
-fun LongRange.contains(other: LongRange) = other.first in this && other.last in this
+operator fun CharRange.contains(other: CharRange) = other.first in this && other.last in this
+operator fun IntRange .contains(other: IntRange)  = other.first in this && other.last in this
+operator fun LongRange.contains(other: LongRange) = other.first in this && other.last in this
