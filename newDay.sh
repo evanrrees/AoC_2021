@@ -52,7 +52,7 @@ internal fun parseInput(inputFile: File): ParsedInput {
 }
 
 fun main() {
-    val inputFile = File("src/main/resources/Day$DAY.txt")
+    val inputFile = File("days/src/main/resources/Day$DAY.txt")
     val parsedInput = parseInput(inputFile)
     timeit("Part 1:") { part1(parsedInput) }
     //timeit("Part 2:") { part2(parsedInput) }
