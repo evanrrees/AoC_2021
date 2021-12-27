@@ -43,10 +43,6 @@ internal fun part1(parsedInput: ParsedInput): Int {
     return loser.score * numRolls
 }
 
-internal tailrec fun triple(n: Int = 3, list: List<List<Int>> = List(n) { listOf(it + 1) }): List<List<Int>> =
-    if (list.first().size == n) list
-    else triple(n, (1..n).flatMap { list.map { l -> l + it } })
-
 internal fun part2(parsedInput: ParsedInput): Long {
 
     data class State(val pos1: Int, val pos2: Int, val score1: Int, val score2: Int) {
