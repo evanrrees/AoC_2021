@@ -1,5 +1,7 @@
 package utils.ranges
 
+// TODO: 12/27/21 move this to another package
+
 fun <T, R, V> Iterable<T>.expand(other: Iterable<R>, transform: (a: T, b: R) -> V): List<V> =
     flatMap { a -> other.map { b -> transform(a, b) } }
 
