@@ -12,9 +12,20 @@ internal class Day23KtTest {
 
     @Test
     fun debug() {
-        val vertices = allVertices(board)
-        vertices.size
+//        val vertices = allVertices(board)
+        Board.initStates(board)
+        Board.states.size
+        val winners = Board.states.filter { it.key.hasWon() }
+        winners.size
     }
+
+//    @Test
+//    fun part1fs() {
+//        val expect = 12521L
+//        val actual = part1fs(board)
+//        assertEquals(expect, actual)
+//    }
+
 
     @Test
     fun part1() {

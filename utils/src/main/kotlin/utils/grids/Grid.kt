@@ -76,6 +76,8 @@ open class Grid<T>(val arr: Array<Array<T>>, val rows: Int = arr.size, val cols:
         for (a in arr) for (it in a) if (!predicate(it)) return false
         return true
     }
+    inline fun <reified R> mapIndexed(transform: (i: Int, j: Int, it: T) -> R) =
+        Grid(rows, cols) { i, j -> transform(i, j, arr[i][j]) }
 
     inline fun <R : Comparable<R>> maxOf(selector: (T) -> R) = arr.maxOf { row -> row.maxOf { selector(it) } }
 

@@ -85,6 +85,27 @@ open class Point(val i: Int, val j: Int) {
     operator fun component1() = i
     operator fun component2() = j
 
+    fun manhattanDistanceTo(other: Point) = kotlin.math.abs(i - other.i) + kotlin.math.abs(j - other.j)
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Point) return false
+
+        if (i != other.i) return false
+        if (j != other.j) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = i
+        result = 31 * result + j
+        return result
+    }
+
+    override fun toString() = "Point(i=$i, j=$j)"
+
+
 }
 
 fun Pair<Int, Int>.toPoint() = Point(this)

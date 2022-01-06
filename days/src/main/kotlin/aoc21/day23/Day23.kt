@@ -8,14 +8,14 @@ import utils.grids.copyOf
 import utils.timeit
 import java.io.File
 
-internal typealias Move = Pair<Board, Long>
+//internal typealias Move = Pair<Board, Long>
 
 internal enum class AmphipodType(val energy: Long) {
     Amber(1), Bronze(10), Copper(100), Desert(1000);
     val home = ordinal * 2 + 2
 }
 
-internal class Amphipod(val type: AmphipodType, val start: Point) {
+internal data class Amphipod(val type: AmphipodType, val start: Point) {
     constructor(c: Char, point: Point): this(AmphipodType.values().single { it.name[0] == c }, point)
     val home get() = type.home
     override fun toString() = "Amphipod(type=$type, start=(${start.i}, ${start.j}))"
@@ -25,12 +25,9 @@ internal class Amphipod(val type: AmphipodType, val start: Point) {
 
 internal open class Board(
     val map: BiMap<Room, Amphipod> = HashBiMap.create(),
-    var cost: Long = Int.MAX_VALUE.toLong(),
-    var prev: Board? = null,
-    var seen: Boolean = false
+    var cost: Long = Long.MAX_VALUE,
+    var prev: Board? = null
 ) {
-
-    val deepCost: Long get() = cost + (prev?.deepCost ?: 0L)
 
     internal fun hasWon() = map.all { (rm, ap) -> rm.x == ap.home }
 
@@ -38,7 +35,15 @@ internal open class Board(
     override fun equals(other: Any?) = this.toString() == other.toString()
 
     val nextMoves by lazy {
-        map.keys.flatMap { src -> src.validMoves()?.map { dest -> move(src, dest) } ?: emptyList() }
+        val moves = mutableListOf<Board>()
+        for (src in map.keys) {
+            src.validMoves()?.forEach { dest ->
+                val new = move(src, dest)
+                val ref = states.getOrPut(new) { new }
+                moves.add(ref)
+            }
+        }
+        moves
     }
 
     fun add(amphipod: Amphipod): Board {
@@ -47,13 +52,16 @@ internal open class Board(
         return this
     }
 
-    private fun move(src: Room, dest: Room): Move {
-        val cost: Long = src.manhattanDistanceTo(dest) * src.getOccupant()!!.type.energy
-        val result by lazy { HashBiMap.create(map).also { it[dest] = it.remove(src)!! }.let(::Board) }
-//            map.toMutableMap().also { it[dest] = it.remove(src)!! }.let(::Board) }
-        result.prev = this
-        result.cost = this.cost + cost
-        return result to cost
+    private fun move(src: Room, dest: Room): Board {
+        val newMap = HashBiMap.create(map)
+        newMap[dest] = newMap.remove(src)!!
+        return Board(newMap)
+    }
+
+    fun distanceTo(other: Board): Long {
+        val src = map.keys.minus(other.map.keys).single()
+        val dest = other.map.keys.minus(map.keys).single()
+        return src.manhattanDistanceTo(dest) * src.getOccupant()!!.type.energy
     }
 
     fun Room.getOccupant() = map[this]
@@ -67,12 +75,14 @@ internal open class Board(
                 emptySet()
             else if (amph.inFirstBurrow() && amph.getNeighbor().inSecondBurrow())
                 emptySet()
+            else if (pointAbove() in map)
+                emptySet()
             else {
                 val (left, right) = halls.partition { it.isLeftOf(this) }
                 left.takeLastWhile { it.isEmpty() }.toSet() + right.takeWhile { it.isEmpty() }
             }
         }
-        else {
+        else if (this is Hall) {
             if (amph.firstBurrow.isOccupied())
                 emptySet()
             else if (pathTo(amph.firstBurrow).any { it.isOccupied() })
@@ -85,6 +95,8 @@ internal open class Board(
             }
             else
                 setOf(amph.secondBurrow)
+        } else {
+            null
         }
 
     }
@@ -171,48 +183,66 @@ internal open class Board(
             else '#'
         }
 
-    }
-}
+        val states = mutableMapOf<Board, Board>()
 
-internal fun allVertices(board: Board): Set<Board> {
-    val result = mutableSetOf<Board>()
-    val stack = mutableListOf(board)
-    while (stack.isNotEmpty()) {
-        val next = stack.removeFirst()
-        if (next !in result) {
-            result.add(next)
-            stack.addAll(next.nextMoves.map(Move::first))
+        fun initStates(start: Board) {
+            start.nextMoves.takeIf { it.isNotEmpty() }?.forEach(::initStates) ?: return
         }
     }
-    return result
 }
 
+//internal fun allVertices(board: Board): Set<Board> {
+//    val result = mutableSetOf<Board>()
+//    val stack = mutableListOf(board)
+//    while (stack.isNotEmpty()) {
+//        val next = stack.removeFirst()
+//        if (next !in result) {
+//            result.add(next)
+//            stack.addAll(next.nextMoves.map(Move::first))
+//        }
+//    }
+//    return result
+//}
+
+//internal fun part1fs(board: Board): Long {
+//    var winningScore = Long.MAX_VALUE
+//    fun dfs(next: Board, score: Long = 0L) {
+//        if (next.hasWon()) {
+//            winningScore = minOf(score, winningScore)
+//        } else {
+//            for ((b, s) in next.nextMoves) {
+//                dfs(b, score + s)
+//            }
+//        }
+//    }
+//    dfs(board)
+//    return winningScore
+//}
+
 internal fun part1(board: Board): Long {
-    val queue = mutableListOf(board)
-    val moves = mutableMapOf<Board, List<Move>>()
-    val costs = mutableMapOf(board to 0L).withDefault { Int.MAX_VALUE.toLong() }
-    val prev = mutableMapOf<Board, Board?>(board to null).withDefault { null }
+//    Board.initStates(board)
     val bag = mutableSetOf(board)
+//    val states = Board.states.toMap()
+    board.cost = 0L
     while (bag.isNotEmpty()) {
         val u = bag.minByOrNull { it.cost }!!
-        bag.remove(u)
-        val neighbors = moves.getOrPut(u) { u.nextMoves }
-        for ((v, cost) in neighbors) {
-            val alt = costs.getValue(u) + cost
-            if (alt < costs.getValue(v)) {
-                costs[v] = alt
-                prev[v] = u
+        for (v in u.nextMoves) {
+            val alt = u.cost + u.distanceTo(v)
+            if (alt < v.cost) {
+                v.cost = alt
+                v.prev = u
                 bag += v
             }
         }
+        bag.remove(u)
     }
-    val winners = costs.filter { it.key.hasWon() }
-    winners.size
-    return costs.entries.single { it.key.hasWon() }.value
+
+    val winner = Board.states.keys.single { it.hasWon() }
+    return winner.cost
 }
 
 internal fun parseInput(inputFile: File): Board {
-    val board = Board(cost = 0L)
+    val board = Board()
     inputFile.readLines().forEachIndexed { y, s ->
         s.forEachIndexed { x, c ->
             if (c in 'A'..'D') board.add(Amphipod(c, Point(i = y - 1, j = x - 1)))
