@@ -8,12 +8,18 @@ import java.io.File
 internal class Day23KtTest {
 
     val inputFile = File("src/test/resources/Day23.txt")
-    val parsedInput = parseInput(inputFile)
+    val board = parseInput(inputFile)
+
+    @Test
+    fun debug() {
+        val vertices = allVertices(board)
+        vertices.size
+    }
 
     @Test
     fun part1() {
         val expect = 12521L
-        val actual = part1(parsedInput)
+        val actual = part1(board)
         assertEquals(expect, actual)
     }
 

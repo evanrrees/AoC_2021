@@ -1,281 +1,228 @@
 package aoc21.day23
 
-import java.io.File
-import utils.timeit
+import com.google.common.collect.BiMap
+import com.google.common.collect.HashBiMap
+import utils.grids.Grid
 import utils.grids.Point
-import utils.ranges.rangeWith
-import kotlin.math.pow
+import utils.grids.copyOf
+import utils.timeit
+import java.io.File
 
-typealias Amph = Triple<Char, Int, Int>
-val Amph.pos get() = Point(second, third)
-val Amph.energy get() = 10.0.pow(first - 'A').toLong()
-val Amph.targetRoom get() = (first - 'A') * 2 + 2
+internal typealias Move = Pair<Board, Long>
 
-internal typealias State = Map<Point, Board.Amphipod>
+internal enum class AmphipodType(val energy: Long) {
+    Amber(1), Bronze(10), Copper(100), Desert(1000);
+    val home = ordinal * 2 + 2
+}
 
-internal data class Board(
-    val board: State,
+internal class Amphipod(val type: AmphipodType, val start: Point) {
+    constructor(c: Char, point: Point): this(AmphipodType.values().single { it.name[0] == c }, point)
+    val home get() = type.home
+    override fun toString() = "Amphipod(type=$type, start=(${start.i}, ${start.j}))"
+    val firstBurrow = Board.burrows.single { it.x == this.home && it.y == 1 }
+    val secondBurrow = Board.burrows.single { it.x == this.home && it.y == 2 }
+}
+
+internal open class Board(
+    val map: BiMap<Room, Amphipod> = HashBiMap.create(),
     var cost: Long = Int.MAX_VALUE.toLong(),
     var prev: Board? = null,
-    var visited: Boolean = false
+    var seen: Boolean = false
 ) {
-    constructor(amphipods: List<Amphipod>): this(amphipods.associateBy { it.position })
-    constructor(board: State, pair: Pair<Point, Amphipod>): this(board + pair)
-    constructor(board: State, pt: Point, amph: Amphipod): this(board, pt to amph)
 
-    fun getPath(): List<Board> = listOf(this) + (prev?.getPath() ?: emptyList())
-    fun getPathCost(): Long = prev?.let { it.distanceTo(this) + it.getPathCost() } ?: 0
+    val deepCost: Long get() = cost + (prev?.deepCost ?: 0L)
 
-    fun distanceTo(other: Board): Long {
-        val (pt1, ap1) = board.entries.single { it.key !in other.board }
-        val (pt2, ap2) = other.board.entries.single { it.key !in board }
-        assert(ap1.type == ap2.type)
-        return pt1.manhattanDistanceTo(pt2) * ap1.type.energy
+    internal fun hasWon() = map.all { (rm, ap) -> rm.x == ap.home }
+
+    override fun hashCode() = this.toString().hashCode()
+    override fun equals(other: Any?) = this.toString() == other.toString()
+
+    val nextMoves by lazy {
+        map.keys.flatMap { src -> src.validMoves()?.map { dest -> move(src, dest) } ?: emptyList() }
     }
 
-    val isWinner = board.all { (pt, amph) -> pt.x == amph.targetRoom }
+    fun add(amphipod: Amphipod): Board {
+        val pt = rooms.single { it == amphipod.start }
+        map[pt] = amphipod
+        return this
+    }
 
-    fun Point.canMoveTo(dest: Point): Boolean {
-        if (dest in board) return false
-        if (this in rooms) {
-            if (this.pointAbove() in board) return false
-        }
-        if (dest in rooms) {
-            val amph = board.getValue(this)
-            // can only move to target room
-            if (dest.x != amph.targetRoom) return false
-            // can't move out of target room
-            if (this == amph.lastTarget) return false
-            // target room is blocked
-            if (amph.firstTarget in board) return false
-            board[amph.lastTarget]?.targetRoom?.let {
-                if (it != amph.targetRoom) return false
+    private fun move(src: Room, dest: Room): Move {
+        val cost: Long = src.manhattanDistanceTo(dest) * src.getOccupant()!!.type.energy
+        val result by lazy { HashBiMap.create(map).also { it[dest] = it.remove(src)!! }.let(::Board) }
+//            map.toMutableMap().also { it[dest] = it.remove(src)!! }.let(::Board) }
+        result.prev = this
+        result.cost = this.cost + cost
+        return result to cost
+    }
+
+    fun Room.getOccupant() = map[this]
+    fun Room.isOccupied() = this in map
+    fun Room.isEmpty() = this !in map
+    fun Room.validMoves(): Set<Room>? {
+        val amph = getOccupant()
+        return if (amph == null) null
+        else if (this is Burrow) {
+            if (amph.inSecondBurrow())
+                emptySet()
+            else if (amph.inFirstBurrow() && amph.getNeighbor().inSecondBurrow())
+                emptySet()
+            else {
+                val (left, right) = halls.partition { it.isLeftOf(this) }
+                left.takeLastWhile { it.isEmpty() }.toSet() + right.takeWhile { it.isEmpty() }
             }
         }
-        val hallRange = x rangeWith dest.x
-        if (board.keys.any { it.inHall() && it.x in hallRange }) return false
-        return true
-    }
-    private fun Point.canAccessHallway() = y == 1 || pointAbove() !in board
-    private fun Point.inHall() = y == 0
-    private fun Point.canMoveHome(): Boolean {
-        val amph = board.getValue(this)
-        if (amph.firstTarget in board) return false
-        if (amph.lastTarget in board && board.getValue(amph.lastTarget).targetRoom != amph.targetRoom) return false
-        if (board.keys.any { it != this && it.inHall() && it.x in x rangeWith amph.targetRoom })
-            return false
-        if (!inHall() && pointAbove() in board) return false
-        return true
+        else {
+            if (amph.firstBurrow.isOccupied())
+                emptySet()
+            else if (pathTo(amph.firstBurrow).any { it.isOccupied() })
+                emptySet()
+            else if (amph.secondBurrow.isOccupied()) {
+                if (amph.getNeighbor().inSecondBurrow())
+                    setOf(amph.firstBurrow)
+                else
+                    emptySet()
+            }
+            else
+                setOf(amph.secondBurrow)
+        }
+
     }
 
-    fun moves(): List<Board> {
-        val boards = mutableListOf<Board>()
-        if (!isWinner) {
-            for ((pt, ap) in board) {
-                if (pt == ap.lastTarget) continue
-                val others = board - pt
-                if (pt.inHall()) {
-                    if (others.keys.any { it.inHall() && it.x in pt.x rangeWith ap.targetRoom }) {
-                        continue
-                    } else if (ap.firstTarget !in others) {
-                        if (ap.lastTarget !in others) {
-                            boards += Board(others, ap.lastTarget, ap)
-                        } else if (others.getValue(ap.lastTarget).type == ap.type) {
-                            boards += Board(others, ap.firstTarget, ap)
-                        }
-                    }
-                } else if (pt.canAccessHallway()) {
-                    val (left, right) = hall.partition { it.x < pt.x }
-                    left.takeLastWhile { it !in others }.forEach { boards += Board(others, it, ap) }
-                    right.takeWhile { it !in others }.forEach { boards += Board(others, it, ap) }
-                }
-            }
-        }
-        return boards
-    }
+    fun Amphipod.getNeighbor() = map.values.single { it.type == type && it.start != start }
+    fun Amphipod.getPos() = map.inverse()[this]!!
+    fun Amphipod.inFirstBurrow() = getPos() == firstBurrow
+    fun Amphipod.inSecondBurrow() = getPos() == secondBurrow
 
     override fun toString(): String {
-        val grid = template.map { it.copyOf() }
-        board.forEach { (i, j), v -> grid[i + 1][j + 1] = v.type.name.first() }
-        return grid.joinToString("\n") { it.joinToString("") }
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is Board) return false
-        if (board != other.board) return false
-        return true
-    }
-
-    override fun hashCode(): Int {
-        return board.hashCode()
-    }
-
-    inner class Amphipod(val type: AmphipodType, val position: Point, private val start: Point = position) {
-        constructor(c: Char, i: Int, j: Int):
-                this(AmphipodType.values().single { it.name.startsWith(c) }, rooms.single { it == Point(i, j) })
-        val targetRoom get() = type.room
-        val roomPoints get() = rooms.filter { it.x == targetRoom }
-        val firstTarget get() = roomPoints[0]
-        val lastTarget get() = roomPoints[1]
-        val counterpart: Amphipod by lazy {
-            board.values.single { it != this && it.type == this.type }
+        val result = stringTemplate.copyOf()
+        map.forEach { (pt, amph) ->
+            result[pt.y + 1, pt.x + 1] = amph.type.name[0]
         }
-        val isSettled get() = position == lastTarget || position == firstTarget && counterpart.position == lastTarget
-        fun moveTo(point: Point): Amphipod { return Amphipod(type, point, start) }
-        fun getOther() = board.filterValues { it.type == type && it.start != this.start }.values.single()
-        fun canMoveTo(dest: Point): Boolean {
-            // can't move if destination is blocked
-            if (dest in board) return false
-            // can't move if settled
-            if (isSettled) return false
-            if (this.position in rooms) {
-                if (this.position.pointAbove() in board) return false
-            }
-            if (dest in rooms) {
-                // can only move to target room
-                if (dest.x != this.targetRoom) return false
-                // can only move if first room is open
-                if (firstTarget in board) return false
-                // can only move to first room if second room occupied by counterpart
-                if (dest == firstTarget && counterpart.position != lastTarget) return false }
-            // check hall path is clear
-            val hallRange = position.x rangeWith dest.x
-            if (board.keys.any { it.inHall() && it.x in hallRange }) return false
-            return true
-        }
-    }
-
-    internal enum class AmphipodType(val energy: Long) {
-        Amber(1), Bronze(10), Copper(100), Desert(1000);
-        val room = ordinal * 2 + 2
-    }
-
-    object Builder {
-        private val list = mutableListOf<Amphipod>()
-        fun addAmphipod(c: Char, i: Int, j: Int) = list.add(builder.run { Amphipod(c, i, j) })
-        operator fun invoke(block: Builder.() -> Unit): Board {
-            list.clear()
-            apply(block)
-            return Board(list.associateBy { it.position })
-        }
+        return result.arr.joinToString("\n") { it.joinToString("") }
     }
 
     companion object {
-        private val builder = Board(emptyMap())
-//        fun amphipod(c: Char, i: Int, j: Int) = builder.run { Amphipod(c, i, j) }
-        private val rooms = listOf(
-            Point(2, 2), Point(2, 4), Point(2, 6), Point(2, 8),
-            Point(1, 2), Point(1, 4), Point(1, 6), Point(1, 8)
+
+        internal sealed class Room(y: Int, x: Int): Point(i = y, j = x) {
+            val adjacent = mutableSetOf<Room>()
+            fun pathTo(other: Room): List<Room> = paths2.getValue(this to other)
+        }
+
+        internal class Burrow(y: Int, x: Int): Room(y = y, x = x) {
+            override fun toString() = "Burrow(x=$x, y=$y)"
+        }
+
+        internal class Hall(y: Int, x: Int): Room(y = y, x = x) {
+            override fun toString() = "Hall(x=$x, y=$y)"
+        }
+
+        val burrows = listOf(
+            Burrow(1, 2), Burrow(2, 2), Burrow(1, 4), Burrow(2, 4),
+            Burrow(1, 6), Burrow(2, 6), Burrow(1, 8), Burrow(2, 8)
         )
-        private val hall = listOf(
-            Point(0, 0), Point(0, 1), Point(0, 3), Point(0, 5), Point(0, 7), Point(0, 9), Point(0, 10),
-        )
-        private val points = rooms + hall
-        private val template = """
-            #############
-            #...........#
-            ###.#.#.#.###
-              #.#.#.#.#  
-              #########  
-        """.trimIndent().split("\n").map { it.toCharArray() }.toList()
+        val halls = listOf(Hall(0, 0), Hall(0, 1), Hall(0, 3), Hall(0, 5), Hall(0, 7), Hall(0, 9), Hall(0, 10))
+            .sortedBy { it.y }
+
+        val rooms = burrows + halls
+        val paths: Map<Room, Map<Room, List<Room>>>
+        val paths2: Map<Pair<Room, Room>, List<Room>>
+        init {
+            burrows.groupBy { it.x }.values.forEach { room ->
+                val (first, last) = room.sortedBy { it.y }
+                last.adjacent += first
+                first.adjacent += last
+                val (left, right) = halls.partition { it.isLeftOf(first) }
+                left.lastOrNull()?.let { first.adjacent += it; it.adjacent += first }
+                right.firstOrNull()?.let { first.adjacent += it; it.adjacent += first }
+            }
+            halls.zipWithNext { a, b ->
+                a.adjacent += b
+                b.adjacent += a
+            }
+            paths = mutableMapOf<Room, MutableMap<Room, List<Room>>>()
+            paths2 = mutableMapOf()
+            for (b in burrows) {
+                for (h in halls) {
+                    val path = findPath(b, h)
+                    paths2[b to h] = path.drop(1)
+                    paths2[h to b] = path.reversed().drop(1)
+                    paths.getOrPut(b) { mutableMapOf() }[h] = path.drop(1)
+                    paths.getOrPut(h) { mutableMapOf() }[b] = path.reversed().drop(1)
+                }
+            }
+        }
+
+        tailrec fun findPath(src: Room, dest: Room, path: List<Room> = listOf(src)): List<Room> {
+            return if (src == dest) path
+            else {
+                val next = when {
+                    dest in src.adjacent -> dest
+                    src.y == 2 -> src.adjacent.single()
+                    dest.isRightOf(src) ->
+                        src.adjacent.filter { it.isRightOf(src) && (it.y == 0 || it.x == dest.x) }.minByOrNull { it.x }!!
+                    else ->
+                        src.adjacent.filter { it.isLeftOf(src) && (it.y == 0 || it.x == dest.x) }.maxByOrNull { it.x }!!
+                }
+                findPath(next, dest, path + next)
+            }
+        }
+
+        val stringTemplate = Grid(5, 13) { i, j ->
+            if (i > 2 && (j < 2 || j > 10)) ' '
+            else if (i == 1 && j > 0 && j < 12) '.'
+            else if (Point(i - 1, j - 1) in burrows) '.'
+            else '#'
+        }
+
     }
 }
 
-internal fun allStates(start: Board): Set<Board> {
-    val set = mutableSetOf<Board>()
-    val stack = mutableListOf(start)
+internal fun allVertices(board: Board): Set<Board> {
+    val result = mutableSetOf<Board>()
+    val stack = mutableListOf(board)
     while (stack.isNotEmpty()) {
         val next = stack.removeFirst()
-        if (next !in set) {
-            set.add(next)
-            stack.addAll(next.moves())
+        if (next !in result) {
+            result.add(next)
+            stack.addAll(next.nextMoves.map(Move::first))
         }
     }
-    return set
+    return result
 }
 
-internal fun part1(start: Board): Long {
-//    val states = mutableSetOf(start)
-    val moves = mutableMapOf<Board, List<Board>>()
-    val costs = mutableMapOf(start to 0L)
-    val q = mutableListOf(start)
-    while (q.isNotEmpty()) {
-        val u = q.removeFirst()
-        if (u in moves) {
-            val mvs = moves[u]!!
-
-        }
-
-        for (v in u.moves()) {
-            val alt = u.cost + u.distanceTo(v)
-            if (alt < v.cost) {
-                v.cost = alt
-                v.prev = u
+internal fun part1(board: Board): Long {
+    val queue = mutableListOf(board)
+    val moves = mutableMapOf<Board, List<Move>>()
+    val costs = mutableMapOf(board to 0L).withDefault { Int.MAX_VALUE.toLong() }
+    val prev = mutableMapOf<Board, Board?>(board to null).withDefault { null }
+    val bag = mutableSetOf(board)
+    while (bag.isNotEmpty()) {
+        val u = bag.minByOrNull { it.cost }!!
+        bag.remove(u)
+        val neighbors = moves.getOrPut(u) { u.nextMoves }
+        for ((v, cost) in neighbors) {
+            val alt = costs.getValue(u) + cost
+            if (alt < costs.getValue(v)) {
+                costs[v] = alt
+                prev[v] = u
+                bag += v
             }
         }
     }
-
-    val states = allStates(start)
-    val queue = states.toMutableSet()
-    val trash = mutableSetOf<Board>()
-    start.cost = 0L
-    while (queue.isNotEmpty()) {
-        val u = queue.minByOrNull { it.cost }!!
-        u.visited = true
-        queue.remove(u)
-        trash.add(u)
-        for (v in u.moves()) {
-            if (v.visited) continue
-            val alt = u.cost + u.distanceTo(v)
-            if (alt < v.cost) {
-                v.cost = alt
-                v.prev = u
-            }
-        }
-    }
-
-    val winner = states.single { it.isWinner }
-    tailrec fun backtrace(state: Board, path: List<Board> = listOf(state)): List<Board> =
-        if (state.prev == null)
-            path
-        else
-            backtrace(state.prev!!, path + state.prev!!)
-    val path = backtrace(winner).reversed()
-    path.forEach {
-        System.err.println("\n${it.cost}\n$it")
-    }
-    return winner.cost
-
-}
-
-internal fun part2(state: Board): Int {
-    TODO()
+    val winners = costs.filter { it.key.hasWon() }
+    winners.size
+    return costs.entries.single { it.key.hasWon() }.value
 }
 
 internal fun parseInput(inputFile: File): Board {
-
-    return Board.Builder {
-        inputFile.readLines().forEachIndexed { i, s ->
-            s.forEachIndexed { j, c ->
-                if (c in 'A'..'D') addAmphipod(c, i, j)
-            }
+    val board = Board()
+    inputFile.readLines().forEachIndexed { y, s ->
+        s.forEachIndexed { x, c ->
+            if (c in 'A'..'D') board.add(Amphipod(c, Point(i = y - 1, j = x - 1)))
         }
     }
-
-//    val map = mutableMapOf<Point, Board.Amphipod>()
-//    inputFile.readLines().forEachIndexed { i, s ->
-//        s.forEachIndexed { j, c ->
-//            if (c in 'A'..'D') {
-//                map[Point(i - 1, j - 1)] = Board.amphipod(c, i, j)
-//            }
-//        }
-//    }
-//    return Board(map)
-
-//    return inputFile.readLines().map { it.filter(Char::isLetter) }.filter { it.isNotEmpty() }
-//        .flatMapIndexed { i, s -> s.mapIndexed { j, c -> Point(i + 1, j * 2 + 2) to Amphipod(c) } }
-//        .toMap().let(::B)
+    return board
 }
 
 fun main() {
