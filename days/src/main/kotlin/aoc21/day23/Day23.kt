@@ -106,7 +106,7 @@ internal open class Board(
 
         internal sealed class Room(y: Int, x: Int): Point(i = y, j = x) {
             val adjacent = mutableSetOf<Room>()
-            fun pathTo(other: Room): List<Room> = paths2.getValue(this to other)
+            fun pathTo(other: Room): List<Room> = paths.getValue(this to other)
         }
 
         internal class Burrow(y: Int, x: Int): Room(y = y, x = x) {
@@ -125,8 +125,7 @@ internal open class Board(
             .sortedBy { it.y }
 
         val rooms = burrows + halls
-        val paths: Map<Room, Map<Room, List<Room>>>
-        val paths2: Map<Pair<Room, Room>, List<Room>>
+        val paths: Map<Pair<Room, Room>, List<Room>>
         init {
             burrows.groupBy { it.x }.values.forEach { room ->
                 val (first, last) = room.sortedBy { it.y }
@@ -140,15 +139,12 @@ internal open class Board(
                 a.adjacent += b
                 b.adjacent += a
             }
-            paths = mutableMapOf<Room, MutableMap<Room, List<Room>>>()
-            paths2 = mutableMapOf()
+            paths = mutableMapOf()
             for (b in burrows) {
                 for (h in halls) {
                     val path = findPath(b, h)
-                    paths2[b to h] = path.drop(1)
-                    paths2[h to b] = path.reversed().drop(1)
-                    paths.getOrPut(b) { mutableMapOf() }[h] = path.drop(1)
-                    paths.getOrPut(h) { mutableMapOf() }[b] = path.reversed().drop(1)
+                    paths[b to h] = path.drop(1)
+                    paths[h to b] = path.reversed().drop(1)
                 }
             }
         }
@@ -216,7 +212,7 @@ internal fun part1(board: Board): Long {
 }
 
 internal fun parseInput(inputFile: File): Board {
-    val board = Board()
+    val board = Board(cost = 0L)
     inputFile.readLines().forEachIndexed { y, s ->
         s.forEachIndexed { x, c ->
             if (c in 'A'..'D') board.add(Amphipod(c, Point(i = y - 1, j = x - 1)))
