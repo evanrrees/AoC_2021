@@ -8,13 +8,13 @@ import utils.timeit
 import kotlin.math.abs
 import kotlin.math.sqrt
 
-inline fun <reified T> Array<T>.swap(i: Int, j: Int) {
+internal inline fun <reified T> Array<T>.swap(i: Int, j: Int) {
     val carry = this[i]
     this[i] = this[j]
     this[j] = carry
 }
 
-abstract class Point3 {
+internal abstract class Point3 {
     abstract val points: Array<Int>
     val x get() = points.first()
     val y get() = points.second()
@@ -39,7 +39,7 @@ abstract class Point3 {
     override fun hashCode() = "$this".hashCode()
 }
 
-class Beacon(override val points: Array<Int>): Point3() {
+internal class Beacon(override val points: Array<Int>): Point3() {
     constructor(x: Int, y: Int, z: Int): this(arrayOf(x, y, z))
     constructor(points: List<Int>): this(points.toTypedArray())
     var globalIndex: Int = 0
@@ -57,7 +57,7 @@ class Beacon(override val points: Array<Int>): Point3() {
     }
 }
 
-class Orientation(override val points: Array<Int> = arrayOf(1, 2, 3), val turns: Array<Int> = Array(3) { 0 }): Point3() {
+internal class Orientation(override val points: Array<Int> = arrayOf(1, 2, 3), val turns: Array<Int> = Array(3) { 0 }): Point3() {
 
     override fun rotateInPlace(axis: Int) {
         turns[axis]++
@@ -102,7 +102,7 @@ class Orientation(override val points: Array<Int> = arrayOf(1, 2, 3), val turns:
 }
 
 
-class Scanner(val id: Int) {
+internal class Scanner(val id: Int) {
     val beacons = mutableListOf<Beacon>()
     val distances = mutableMapOf<Pair<Beacon, Beacon>, Double>()
     fun addBeacon(beacon: Beacon) {
@@ -118,7 +118,7 @@ class Scanner(val id: Int) {
     }
 }
 
-fun compareScanners(scanner1: Scanner, scanner2: Scanner, orientations: Grid<Orientation?>): Boolean {
+internal fun compareScanners(scanner1: Scanner, scanner2: Scanner, orientations: Grid<Orientation?>): Boolean {
     for (beacon1a in scanner1.beacons) {
         val d1 = scanner1.distances.filterKeys { it.first == beacon1a }
         for (beacon2a in scanner2.beacons) {
@@ -141,7 +141,7 @@ fun compareScanners(scanner1: Scanner, scanner2: Scanner, orientations: Grid<Ori
     return false
 }
 
-fun combineScanners(scanner: Scanner, others: MutableList<Scanner>, orientations: Grid<Orientation?>): Scanner {
+internal fun combineScanners(scanner: Scanner, others: MutableList<Scanner>, orientations: Grid<Orientation?>): Scanner {
     return if (others.isEmpty()) scanner
     else {
         for (i in others.indices) {
@@ -157,7 +157,7 @@ fun combineScanners(scanner: Scanner, others: MutableList<Scanner>, orientations
     }
 }
 
-fun part1(scanners: List<Scanner>): Int {
+internal fun part1(scanners: List<Scanner>): Int {
     val o = Grid(scanners.size, scanners.size) { i, j ->
         if (i == j) Orientation(arrayOf(0, 0, 0)) else null
     }
@@ -165,7 +165,7 @@ fun part1(scanners: List<Scanner>): Int {
     return map.beacons.size
 }
 
-fun part2(scanners: List<Scanner>): Long {
+internal fun part2(scanners: List<Scanner>): Long {
     val o = Grid(scanners.size, scanners.size) { i, j ->
         if (i == j) Orientation(arrayOf(0, 0, 0)) else null
     }
@@ -180,7 +180,7 @@ fun part2(scanners: List<Scanner>): Long {
     return max
 }
 
-fun parseInput(inputFile: File): List<Scanner> {
+internal fun parseInput(inputFile: File): List<Scanner> {
     val scanners = mutableListOf<Scanner>()
     inputFile.forEachLine { line ->
         if (line.matches("--- scanner [0-9]+ ---".toRegex())) scanners += Scanner(line.split(' ').third().toInt())
@@ -189,7 +189,7 @@ fun parseInput(inputFile: File): List<Scanner> {
     return scanners
 }
 
-fun main() {
+internal fun main() {
     val inputFile = File("days/src/main/resources/Day19.txt")
     val scanners = parseInput(inputFile)
 //    timeit("Part 1:") { part1(scanners) }
