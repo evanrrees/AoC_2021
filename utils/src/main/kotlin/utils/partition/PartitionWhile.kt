@@ -1,4 +1,4 @@
-package utils.partitionWhile
+package utils.partition
 
 inline fun <T> Iterable<T>.partitionWhile(predicate: (T) -> Boolean): Pair<List<T>, List<T>> {
     val first = ArrayList<T>()
