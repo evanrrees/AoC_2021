@@ -1,260 +1,232 @@
 package aoc21.day23
 
-import com.google.common.collect.BiMap
-import com.google.common.collect.HashBiMap
-import utils.grids.Grid
-import utils.grids.Point
-import utils.grids.copyOf
+import utils.partitionWhile.partitionWhile
+import utils.ranges.rangeWith
 import utils.timeit
 import java.io.File
+import java.util.*
+import kotlin.math.abs
 
-//internal typealias Move = Pair<Board, Long>
-
-internal enum class AmphipodType(val energy: Long) {
-    Amber(1), Bronze(10), Copper(100), Desert(1000);
-    val home = ordinal * 2 + 2
+internal enum class Amphipod {
+    Amber, Bronze, Copper, Desert;
+    val burrow = ordinal * 2 + 2
+    val energy: Long by lazy { if (ordinal == 0) 1L else values()[ordinal - 1].energy * 10 }
+    val value = name[0]
+    companion object {
+        operator fun invoke(char: Char) = values().single { it.name[0] == char }
+    }
+    override fun toString(): String = name.take(1)
 }
 
-internal data class Amphipod(val type: AmphipodType, val start: Point) {
-    constructor(c: Char, point: Point): this(AmphipodType.values().single { it.name[0] == c }, point)
-    val home get() = type.home
-    override fun toString() = "Amphipod(type=$type, start=(${start.i}, ${start.j}))"
-    val firstBurrow = Board.burrows.single { it.x == this.home && it.y == 1 }
-    val secondBurrow = Board.burrows.single { it.x == this.home && it.y == 2 }
-}
-
-internal open class Board(
-    val map: BiMap<Room, Amphipod> = HashBiMap.create(),
-    var cost: Long = Long.MAX_VALUE,
-    var prev: Board? = null
+internal class Move(
+    val src: Int,
+    val dest: Int,
+    val mover: Amphipod,
+    val distance: Long
 ) {
-
-    internal fun hasWon() = map.all { (rm, ap) -> rm.x == ap.home }
-
-    override fun hashCode() = this.toString().hashCode()
-    override fun equals(other: Any?) = this.toString() == other.toString()
-
-    val nextMoves by lazy {
-        val moves = mutableListOf<Board>()
-        for (src in map.keys) {
-            src.validMoves()?.forEach { dest ->
-                val new = move(src, dest)
-                val ref = states.getOrPut(new) { new }
-                moves.add(ref)
+    override fun toString() = "%s: %-2d -> %-2d (%d)".format(mover, src, dest, distance)
+    companion object {
+        operator fun invoke(src:Int, dest: Int, amphipod: Amphipod, board: Board): Move {
+            var distance = abs(src - dest).toLong()
+            if (src in Board.burrows)
+                distance += board.burrowSize - board.rooms[src].size + 1
+            if (dest in Board.burrows)
+                distance += board.burrowSize - board.rooms[dest].size
+            distance *= amphipod.energy
+            return Move(src, dest, amphipod, distance)
+        }
+        operator fun invoke(file: File): Board {
+            val lists = List(11) { mutableListOf<Amphipod>() }
+            file.readLines().forEach {
+                it.forEachIndexed { j, c ->
+                    if (c in 'A'..'D')
+                        lists[j - 1] += Amphipod(c)
+                }
             }
+            val burrowSize = lists.maxOf { it.size }
+            Board.nodes.clear()
+            return Board(lists, burrowSize = burrowSize, cost = 0L)
         }
-        moves
+    }
+}
+
+internal class Board(val rooms: List<List<Amphipod>>,
+            val burrowSize: Int,
+            var cost: Long = Long.MAX_VALUE,
+            var prev: Board? = null) {
+
+    val hasWon: Boolean = burrows.all {
+        rooms[it].run { size == burrowSize && all { amphi -> amphi.burrow == it } }
     }
 
-    fun add(amphipod: Amphipod): Board {
-        val pt = rooms.single { it == amphipod.start }
-        map[pt] = amphipod
-        return this
-    }
-
-    private fun move(src: Room, dest: Room): Board {
-        val newMap = HashBiMap.create(map)
-        newMap[dest] = newMap.remove(src)!!
-        return Board(newMap)
-    }
-
-    fun distanceTo(other: Board): Long {
-        val src = map.keys.minus(other.map.keys).single()
-        val dest = other.map.keys.minus(map.keys).single()
-        return src.manhattanDistanceTo(dest) * src.getOccupant()!!.type.energy
-    }
-
-    fun Room.getOccupant() = map[this]
-    fun Room.isOccupied() = this in map
-    fun Room.isEmpty() = this !in map
-    fun Room.validMoves(): Set<Room>? {
-        val amph = getOccupant()
-        return if (amph == null) null
-        else if (this is Burrow) {
-            if (amph.inSecondBurrow())
-                emptySet()
-            else if (amph.inFirstBurrow() && amph.getNeighbor().inSecondBurrow())
-                emptySet()
-            else if (pointAbove() in map)
-                emptySet()
-            else {
-                val (left, right) = halls.partition { it.isLeftOf(this) }
-                left.takeLastWhile { it.isEmpty() }.toSet() + right.takeWhile { it.isEmpty() }
+    fun getMoves(): List<Pair<Board, Move>> =
+        if (this.hasWon)
+            emptyList()
+        else {
+            val worstMoves = mutableListOf<Triple<Amphipod, Int, Int>>()
+            val bestMoves = mutableListOf<Triple<Amphipod, Int, Int>>()
+            for ((src, stack) in rooms.withIndex()) {
+                val amphipod = stack.firstOrNull()
+                if (amphipod != null) {
+                    val homeBurrow = rooms[amphipod.burrow]
+                    if (homeBurrow.all { it.burrow == amphipod.burrow }) {
+                        val dest = amphipod.burrow
+                        if (src == dest) continue
+                        val hallRange by lazy { src rangeWith dest }
+                        if (
+                            homeBurrow.size < burrowSize &&
+                            !halls.any { it != src && it in hallRange && rooms[it].isNotEmpty() }
+                        ) {
+                            bestMoves += Triple(amphipod, src, dest)
+                            continue
+                        }
+                    }
+                    if (src in burrows) {
+                        val (left, right) = halls.partitionWhile { it < src }
+                        left.takeLastWhile { dest -> rooms[dest].isEmpty() }
+                            .forEach { dest -> worstMoves += Triple(amphipod, src, dest) }
+                        right.takeWhile { dest -> rooms[dest].isEmpty() }
+                            .forEach { dest -> worstMoves += Triple(amphipod, src, dest) }
+                    }
+                }
             }
-        }
-        else if (this is Hall) {
-            if (amph.firstBurrow.isOccupied())
-                emptySet()
-            else if (pathTo(amph.firstBurrow).any { it.isOccupied() })
-                emptySet()
-            else if (amph.secondBurrow.isOccupied()) {
-                if (amph.getNeighbor().inSecondBurrow())
-                    setOf(amph.firstBurrow)
-                else
-                    emptySet()
-            }
-            else
-                setOf(amph.secondBurrow)
-        } else {
-            null
-        }
 
-    }
-
-    fun Amphipod.getNeighbor() = map.values.single { it.type == type && it.start != start }
-    fun Amphipod.getPos() = map.inverse()[this]!!
-    fun Amphipod.inFirstBurrow() = getPos() == firstBurrow
-    fun Amphipod.inSecondBurrow() = getPos() == secondBurrow
-
-    override fun toString(): String {
-        val result = stringTemplate.copyOf()
-        map.forEach { (pt, amph) ->
-            result[pt.y + 1, pt.x + 1] = amph.type.name[0]
+            bestMoves.ifEmpty { worstMoves }
+                .map { (mover, src, dest) ->
+                    val map = rooms.mapIndexed { index, list ->
+                        when (index) {
+                            src  -> list.drop(1)
+                            dest -> listOf(mover) + list
+                            else -> list
+                        }
+                    }
+                    val move = Move(src, dest, mover, this)
+                    val newBoard = Board(map, burrowSize).let { nodes.getOrPut(it) { it } }
+                    if (newBoard.hasWon) return listOf(newBoard to move)
+                    newBoard to move
+                }
         }
-        return result.arr.joinToString("\n") { it.joinToString("") }
-    }
 
     companion object {
+        val nodes = mutableMapOf<Board, Board>()
+        val halls = listOf(0, 1, 3, 5, 7, 9, 10)
+        val burrows = listOf(2, 4, 6, 8)
+    }
 
-        internal sealed class Room(y: Int, x: Int): Point(i = y, j = x) {
-            val adjacent = mutableSetOf<Room>()
-            fun pathTo(other: Room): List<Room> = paths.getValue(this to other)
+    override fun toString(): String = _string
+
+    private val _string = run {
+        val rows = rooms.maxOf { it.size } + 1
+        val result = List(rows) { CharArray(11) { ' ' } }
+        rooms.forEachIndexed { j, list ->
+            if (j in halls)
+                result[0][j] = list.singleOrNull()?.value ?: '_'
+            else if (list.isEmpty())
+                result[1][j] = '.'
+            else
+                list.forEachIndexed { i, amphipod -> result[i + 1][j] = amphipod.value }
         }
+        result.joinToString("\n") { it.joinToString("") }
+    }
 
-        internal class Burrow(y: Int, x: Int): Room(y = y, x = x) {
-            override fun toString() = "Burrow(x=$x, y=$y)"
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Board) return false
+        if (_string != other._string) return false
+        return true
+    }
+
+    override fun hashCode(): Int = _hash
+
+    private val _hash = _string.hashCode()
+
+}
+
+internal fun runInteractive(file: File) {
+    Board.nodes.clear()
+    val start = parseInput(file)
+    var board = start
+    val s = Scanner(System.`in`)
+    println("New game. Burrow size = ${start.burrowSize}")
+    while (true) {
+        println("\nBoard (cost=${board.cost}):\n$board")
+        val moves = board.getMoves()
+        if (board.hasWon) {
+            println("You won!")
+            break
         }
-
-        internal class Hall(y: Int, x: Int): Room(y = y, x = x) {
-            override fun toString() = "Hall(x=$x, y=$y)"
+        if (moves.isEmpty()) {
+            println("You lost!")
+            board = board.prev ?: break
+            continue
         }
-
-        val burrows = listOf(
-            Burrow(1, 2), Burrow(2, 2), Burrow(1, 4), Burrow(2, 4),
-            Burrow(1, 6), Burrow(2, 6), Burrow(1, 8), Burrow(2, 8)
-        )
-        val halls = listOf(Hall(0, 0), Hall(0, 1), Hall(0, 3), Hall(0, 5), Hall(0, 7), Hall(0, 9), Hall(0, 10))
-            .sortedBy { it.y }
-
-        val rooms = burrows + halls
-        val paths: Map<Pair<Room, Room>, List<Room>>
-        init {
-            burrows.groupBy { it.x }.values.forEach { room ->
-                val (first, last) = room.sortedBy { it.y }
-                last.adjacent += first
-                first.adjacent += last
-                val (left, right) = halls.partition { it.isLeftOf(first) }
-                left.lastOrNull()?.let { first.adjacent += it; it.adjacent += first }
-                right.firstOrNull()?.let { first.adjacent += it; it.adjacent += first }
+        println("\nMoves:")
+        moves.withIndex()
+            .windowed(3, 3, true) {
+                it.joinToString(" ") { (i, s) -> "$i)".padEnd(3) + " ${s.second}".padEnd(22) }
             }
-            halls.zipWithNext { a, b ->
-                a.adjacent += b
-                b.adjacent += a
-            }
-            paths = mutableMapOf()
-            for (b in burrows) {
-                for (h in halls) {
-                    val path = findPath(b, h)
-                    paths[b to h] = path.drop(1)
-                    paths[h to b] = path.reversed().drop(1)
-                }
-            }
+            .forEach(::println)
+        print("\nSelect a move: ")
+        val input = if (moves.size > 1) s.nextInt() else {
+            println("0 (only one move available)")
+            0
         }
-
-        tailrec fun findPath(src: Room, dest: Room, path: List<Room> = listOf(src)): List<Room> {
-            return if (src == dest) path
-            else {
-                val next = when {
-                    dest in src.adjacent -> dest
-                    src.y == 2 -> src.adjacent.single()
-                    dest.isRightOf(src) ->
-                        src.adjacent.filter { it.isRightOf(src) && (it.y == 0 || it.x == dest.x) }.minByOrNull { it.x }!!
-                    else ->
-                        src.adjacent.filter { it.isLeftOf(src) && (it.y == 0 || it.x == dest.x) }.maxByOrNull { it.x }!!
-                }
-                findPath(next, dest, path + next)
+        if (input == -1) {
+            board = board.prev ?: board.also {
+                println("Can't go back - no previous element!")
             }
-        }
-
-        val stringTemplate = Grid(5, 13) { i, j ->
-            if (i > 2 && (j < 2 || j > 10)) ' '
-            else if (i == 1 && j > 0 && j < 12) '.'
-            else if (Point(i - 1, j - 1) in burrows) '.'
-            else '#'
-        }
-
-        val states = mutableMapOf<Board, Board>()
-
-        fun initStates(start: Board) {
-            start.nextMoves.takeIf { it.isNotEmpty() }?.forEach(::initStates) ?: return
+        } else {
+            val (new, move) = moves[input]
+            new.prev = board
+            new.cost = board.cost + move.distance
+            board = new
         }
     }
 }
 
-//internal fun allVertices(board: Board): Set<Board> {
-//    val result = mutableSetOf<Board>()
-//    val stack = mutableListOf(board)
-//    while (stack.isNotEmpty()) {
-//        val next = stack.removeFirst()
-//        if (next !in result) {
-//            result.add(next)
-//            stack.addAll(next.nextMoves.map(Move::first))
-//        }
-//    }
-//    return result
-//}
-
-//internal fun part1fs(board: Board): Long {
-//    var winningScore = Long.MAX_VALUE
-//    fun dfs(next: Board, score: Long = 0L) {
-//        if (next.hasWon()) {
-//            winningScore = minOf(score, winningScore)
-//        } else {
-//            for ((b, s) in next.nextMoves) {
-//                dfs(b, score + s)
-//            }
-//        }
-//    }
-//    dfs(board)
-//    return winningScore
-//}
-
-internal fun part1(board: Board): Long {
-//    Board.initStates(board)
-    val bag = mutableSetOf(board)
-//    val states = Board.states.toMap()
-    board.cost = 0L
-    while (bag.isNotEmpty()) {
-        val u = bag.minByOrNull { it.cost }!!
-        for (v in u.nextMoves) {
-            val alt = u.cost + u.distanceTo(v)
+internal fun solve(file: File): Long {
+    Board.nodes.clear()
+    val start = parseInput(file)
+    val queue = mutableListOf(start)
+    while (queue.isNotEmpty()) {
+        val u = queue.minByOrNull { it.cost }!!
+        queue.remove(u)
+        for ((v, move) in u.getMoves()) {
+            val alt = u.cost + move.distance
             if (alt < v.cost) {
                 v.cost = alt
                 v.prev = u
-                bag += v
+                queue += v
             }
         }
-        bag.remove(u)
     }
-
-    val winner = Board.states.keys.single { it.hasWon() }
+    val nodes = Board.nodes.keys
+    val winners = nodes.filter { it.hasWon }
+    val winner = winners.single()
     return winner.cost
 }
 
-internal fun parseInput(inputFile: File): Board {
-    val board = Board()
-    inputFile.readLines().forEachIndexed { y, s ->
-        s.forEachIndexed { x, c ->
-            if (c in 'A'..'D') board.add(Amphipod(c, Point(i = y - 1, j = x - 1)))
+internal fun parseInput(file: File): Board {
+    val burrowSize: Int
+    val temp = List(11) { mutableListOf<Amphipod>() }
+    file.readLines().forEach {
+        it.forEachIndexed { j, c ->
+            if (c in 'A'..'D')
+                temp[j - 1] += Amphipod(c)
         }
     }
-    return board
+    burrowSize = temp.filterIndexed { idx, _ -> idx in 2 .. 8 step 2 }
+        .distinctBy { it.size }
+        .single()
+        .size
+    Board.nodes.clear()
+    return Board(temp, burrowSize = burrowSize, cost = 0L)
 }
 
-fun main() {
-    val inputFile = File("days/src/main/resources/Day23.txt")
-    val parsedInput = parseInput(inputFile)
-    timeit("Part 1:") { part1(parsedInput) }
-    //timeit("Part 2:") { part2(parsedInput) }
+internal fun main() {
+    val part1File = File("/Users/err87/repos/evanrr/AoC_2021/days/src/main/resources/day23/part1.txt")
+    val part2File = File("/Users/err87/repos/evanrr/AoC_2021/days/src/main/resources/day23/part2.txt")
+    timeit("Part 1:") { solve(part1File) }
+    timeit("Part 2:") { solve(part2File) }
 }
 
