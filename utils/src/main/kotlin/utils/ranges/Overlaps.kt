@@ -2,13 +2,18 @@ package utils.ranges
 
 // TODO: 12/27/21 create tests
 
-infix fun IntRange.overlaps(other: IntRange) =
-    first in other || last in other || other.first in this || other.last in this
-infix fun LongRange.overlaps(other: LongRange) =
-    first in other || last in other || other.first in this || other.last in this
-infix fun CharRange.overlaps(other: CharRange) =
-    first in other || last in other || other.first in this || other.last in this
+inline infix fun <reified T : Comparable<T>> ClosedRange<T>.overlaps(other: ClosedRange<T>): Boolean {
+    if (start in other)             return true
+    if (endInclusive in other)      return true
+    if (other.start in this)        return true
+    if (other.endInclusive in this) return true
+    return false
+}
 
-operator fun CharRange.contains(other: CharRange) = other.first in this && other.last in this
-operator fun IntRange .contains(other: IntRange)  = other.first in this && other.last in this
-operator fun LongRange.contains(other: LongRange) = other.first in this && other.last in this
+inline infix fun <reified T : Comparable<T>> ClosedRange<T>.notOverlaps(other: ClosedRange<T>): Boolean {
+    if (start in other)             return false
+    if (endInclusive in other)      return false
+    if (other.start in this)        return false
+    if (other.endInclusive in this) return false
+    return true
+}
