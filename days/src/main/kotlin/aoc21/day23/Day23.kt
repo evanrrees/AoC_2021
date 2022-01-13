@@ -1,6 +1,6 @@
 package aoc21.day23
 
-import utils.partitionWhile.partitionWhile
+import utils.partition.partitionWhile
 import utils.ranges.rangeWith
 import utils.timeit
 import java.io.File
