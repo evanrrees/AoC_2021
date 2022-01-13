@@ -1,0 +1,66 @@
+def program(w, x, y, z, x6, y16):                       variants are z (result of prior round), w, x6, y16
+    x *= 0                  a+                          !!! can ignore x and y and w state in hashcode and equals !!!
+    x += z                  a+
+    x %= 26                 a)  x = z % 26
+
+
+    z /= 1                  -
+    x += x6                 b+
+    x == w                  b+
+    x == 0                  b)  x = (x + x6) != w       x = (z % 26) + x6 != w
+                                                        b(a(z), x6, w) = ab(z, x6, w)
+                                                        checking if remainder of previous / 26 + x6 is w
+
+                                                        x = b(): (z- % 26) + x6 != w
+
+    y *= 0                  c+
+    y += 25                 c+
+    y *= x                  c+
+    y += 1                  c+
+    z *= y                  c)  z = z * (25 * x + 1)    either very large or very small depending on b()
+                                                        z = c(): z- * (25 * b() + 1)
+
+    y *= 0                  d+
+    y = w                   d+
+    y += y16                d+
+    y *= x                  d+
+    z += y                  d)  z = z + (w + y16) * x   z: d() = c() + (w + y16) * b()
+                                                        z = z- * (25 * b() + 1) + (w + y16) * b()
+                                                        z = z- * (25 * ((z- % 26) + x6 != w) + 1) + (w + y16) * (z- % 26) + x6 != w
+
+                                                        z = if ((z- % 26) + x6) != w:
+                                                                z- * 26 + w + y16
+                                                            else:
+                                                                z-
+
+                                                        z = if b():
+                                                                z- * 26 + w + y16
+                                                            else:
+                                                                z-
+
+                                                        d(c()) = (z * 25 * b()) + 1 + (w + y16) * b()
+
+                                                        z =
+                                                            if (z- % 26 + x6 != w):
+                                                                z- * 25 + 1 + w + y16    # when does this reach zero?
+                                                            else:                       # AHA! We can skip the new input
+                                                                z-
+## new
+inp w       # get input w
+mul x 0
+add x z
+mod x 26
+div z 1
+add x 13
+eql x w
+eql x 0
+mul y 0
+add y 25
+mul y x
+add y 1
+mul z y
+mul y 0
+add y w
+add y 3
+mul y x
+add z y
