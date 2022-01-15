@@ -1,5 +1,8 @@
 package utils.grids
 
+inline fun <reified T> gridOf(rows: Int, cols: Int, init: (i: Int, j: Int) -> T): Grid<T> {
+    return Grid(Array(rows) { i -> Array(cols) { j -> init(i, j) } })
+}
 
 open class Grid<T>(val arr: Array<Array<T>>, val rows: Int = arr.size, val cols: Int = arr.distinctBy { it.size }.single().size) {
 
@@ -41,7 +44,9 @@ open class Grid<T>(val arr: Array<Array<T>>, val rows: Int = arr.size, val cols:
             Grid(Array(source.size) { source.elementAt(it).toTypedArray() })
     }
 
-    operator fun get(i: Int, j: Int) = arr[i][j]
+    open operator fun get(i: Int, j: Int) = arr[i][j]
+    operator fun get(i: Int) = arr[i]
+//    operator fun get(j: Int, i: IntRange = 0..lastRowIndex) = arr.su
     operator fun get(point: Point) = arr[point.i][point.j]
 
     operator fun set(i: Int, j: Int, value: T) { arr[i][j] = value }
@@ -89,6 +94,30 @@ open class Grid<T>(val arr: Array<Array<T>>, val rows: Int = arr.size, val cols:
 
     fun toCSV() = arr.joinToString("\n") { it.joinToString("\n") }
 
+}
+
+fun <T> Grid<T>.getOrElse(i: Int, j: Int, defaultValue: (Int, Int) -> T): T {
+    return if (i in 0..lastRowIndex) arr[i][j] else defaultValue(i, j)
+}
+
+fun <T> Grid<T>.getOrElse(i: Int, defaultValue: (Int) -> Array<T>): Array<T> {
+    return if (i in 0..lastRowIndex) arr[i] else defaultValue(i)
+}
+
+fun <T> Grid<T>.getOrDefault(i: Int, j: Int, defaultValue: T): T {
+    return if (i in 0..lastRowIndex) arr[i][j] else defaultValue
+}
+
+fun <T> Grid<T>.getOrDefault(i: Int, defaultValue: Array<T>): Array<T> {
+    return if (i in 0..lastRowIndex) arr[i] else defaultValue
+}
+
+fun <T> Grid<T>.getOrNull(i: Int, j: Int): T? {
+    return if (i in 0..lastRowIndex && j in 0..lastColIndex) arr[i][j] else null
+}
+
+fun <T> Grid<T>.getOrNull(i: Int): Array<T>? {
+    return if (i in 0..lastRowIndex) arr[i] else null
 }
 
 inline fun <reified T> Grid<T>.copyOf(): Grid<T> = Grid(Array(rows) { arr[it].copyOf() })
