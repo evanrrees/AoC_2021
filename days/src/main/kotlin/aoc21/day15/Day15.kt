@@ -3,6 +3,7 @@ package aoc21.day15
 import utils.grids.Grid
 import utils.grids.Point
 import utils.grids.asGrid
+import utils.grids.forEachIndexed
 import java.io.File
 import utils.timeit
 

@@ -69,22 +69,8 @@ open class Grid<T>(val arr: Array<Array<T>>, val rows: Int = arr.size, val cols:
 
     override fun hashCode() = arr.contentDeepHashCode()
 
-    fun forEach(action: (it: T) -> Unit) = arr.forEach { it.forEach(action) }
-    fun forEachIndexed(action: (i: Int, j: Int, it: T) -> Unit) =
-        arr.forEachIndexed { i, p -> p.forEachIndexed { j, t -> action(i, j, t) } }
-
     fun points() = arr.indices.flatMap { i -> arr[i].indices.map { j -> Point(i, j) } }
     fun pointSequence() = sequence { arr.indices.forEach { i -> arr[i].indices.forEach { j -> yield(Point(i, j)) } } }
-
-    inline fun <reified R> map(transform: (it: T) -> R) = Grid(rows, cols) { i, j -> transform(arr[i][j]) }
-    fun all(predicate: (it: T) -> Boolean): Boolean {
-        for (a in arr) for (it in a) if (!predicate(it)) return false
-        return true
-    }
-    inline fun <reified R> mapIndexed(transform: (i: Int, j: Int, it: T) -> R) =
-        Grid(rows, cols) { i, j -> transform(i, j, arr[i][j]) }
-
-    inline fun <R : Comparable<R>> maxOf(selector: (T) -> R) = arr.maxOf { row -> row.maxOf { selector(it) } }
 
     override fun toString(): String {
         val width = maxOf { "$it".length }
@@ -95,6 +81,27 @@ open class Grid<T>(val arr: Array<Array<T>>, val rows: Int = arr.size, val cols:
     fun toCSV() = arr.joinToString("\n") { it.joinToString("\n") }
 
 }
+
+fun <T> Grid<T>.toString(colsep: String) = arr.joinToString("\n") { it.joinToString(colsep) }
+
+fun <T> Grid<T>.all(predicate: (it: T) -> Boolean): Boolean {
+    for (a in arr) for (it in a) if (!predicate(it)) return false
+    return true
+}
+
+//inline fun <reified G : Grid<T>, T, reified R> G.map(transform: (it: T) -> R): G {
+//    return Grid(rows, cols) { i, j -> transform(arr[i][j]) }
+//}
+
+inline fun <T, R : Comparable<R>> Grid<T>.maxOf(selector: (T) -> R) = arr.maxOf { row -> row.maxOf { selector(it) } }
+
+fun <T> Grid<T>.forEachIndexed(action: (i: Int, j: Int, it: T) -> Unit) =
+    arr.forEachIndexed { i, p -> p.forEachIndexed { j, t -> action(i, j, t) } }
+
+fun <T> Grid<T>.forEach(action: (it: T) -> Unit) = arr.forEach { it.forEach(action) }
+
+inline fun <T, reified R> Grid<T>.mapIndexed(transform: (i: Int, j: Int, it: T) -> R) =
+    Grid(rows, cols) { i, j -> transform(i, j, arr[i][j]) }
 
 fun <T> Grid<T>.getOrElse(i: Int, j: Int, defaultValue: (Int, Int) -> T): T {
     return if (i in 0..lastRowIndex) arr[i][j] else defaultValue(i, j)
