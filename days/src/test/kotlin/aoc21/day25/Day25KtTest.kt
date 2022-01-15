@@ -8,19 +8,13 @@ import java.io.File
 internal class Day25KtTest {
 
     val inputFile = File("src/test/resources/Day25.txt")
-    val parsedInput = parseInput(inputFile)
+    val grid = RollingGrid(inputFile)
 
     @Test
     fun part1() {
         val expect = 58
-        val actual = part1(parsedInput)
+        val actual = part1(grid)
         assertEquals(expect, actual)
     }
 
-    @Test
-    fun part2() {
-//        val expect = TODO()
-//        val actual = part2(parsedInput)
-//        assertEquals(expect, actual)
-    }
 }
