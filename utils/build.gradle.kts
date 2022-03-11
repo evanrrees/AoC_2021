@@ -14,10 +14,26 @@ dependencies {
     implementation("org.tinylog:tinylog-impl:2.4.1")
     implementation("org.jetbrains.kotlin:kotlin-script-runtime:1.6.0")
     implementation("org.jetbrains.kotlin:kotlin-stdlib:1.6.0")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.6.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
 }
 
-tasks.getByName<Test>("test") {
-    useJUnitPlatform()
+java {
+    withSourcesJar()
+}
+
+tasks {
+
+    getByName<Test>("test") {
+        useJUnitPlatform()
+    }
+
+    jar {
+        manifest {
+            attributes(mapOf("Implementation-Title" to project.name,
+                "Implementation-Version" to project.version))
+        }
+    }
+
 }
